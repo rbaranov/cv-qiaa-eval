@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "born",
+  "seed": 0,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.001,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 816896,
+ "attention_params": 262656,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.7007341384887695,
+   "val": 4.684148941040039,
+   "seconds": 1.476383924484253
+  },
+  {
+   "step": 250,
+   "train": 1.713087558746338,
+   "val": 1.7456693434715271,
+   "seconds": 14.264535903930664
+  },
+  {
+   "step": 500,
+   "train": 1.4270880222320557,
+   "val": 1.4703326892852784,
+   "seconds": 27.571757078170776
+  },
+  {
+   "step": 750,
+   "train": 1.3839454650878906,
+   "val": 1.3334984374046326,
+   "seconds": 40.58342504501343
+  },
+  {
+   "step": 1000,
+   "train": 1.2381035089492798,
+   "val": 1.2476205825805664,
+   "seconds": 55.23178291320801
+  },
+  {
+   "step": 1250,
+   "train": 1.1629228591918945,
+   "val": 1.1910156416893005,
+   "seconds": 68.03941702842712
+  },
+  {
+   "step": 1500,
+   "train": 1.120833396911621,
+   "val": 1.145681438446045,
+   "seconds": 80.91240692138672
+  },
+  {
+   "step": 1750,
+   "train": 1.0517574548721313,
+   "val": 1.1107714343070985,
+   "seconds": 93.80218601226807
+  },
+  {
+   "step": 2000,
+   "train": 1.113487958908081,
+   "val": 1.0852719008922578,
+   "seconds": 106.77215003967285
+  },
+  {
+   "step": 2250,
+   "train": 1.055808663368225,
+   "val": 1.0571010994911194,
+   "seconds": 119.37190890312195
+  },
+  {
+   "step": 2500,
+   "train": 1.0728845596313477,
+   "val": 1.043593193292618,
+   "seconds": 132.30251288414001
+  },
+  {
+   "step": 2750,
+   "train": 1.007077932357788,
+   "val": 1.035116765499115,
+   "seconds": 145.26750206947327
+  },
+  {
+   "step": 3000,
+   "train": 1.0046225786209106,
+   "val": 1.033340300321579,
+   "seconds": 158.21843886375427
+  }
+ ],
+ "nan_step": null,
+ "seconds": 158.21924090385437,
+ "final_val": 1.033340300321579,
+ "sample": "Once upon a time, there was a boy named Timmy. Timmy loved to play outside in the oat. Timmy was very stodies and card because he was playing with the clothes, taking with them, but his mom as differer for the new is of the beench this races and said, \"I is this is owner.\" Joe couldn't like it to stuck in the bunny"
+}

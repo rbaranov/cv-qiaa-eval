@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "softmax",
+  "seed": 2,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.001,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 816896,
+ "attention_params": 262656,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.778218746185303,
+   "val": 4.765162591934204,
+   "seconds": 1.4744668006896973
+  },
+  {
+   "step": 250,
+   "train": 1.518303394317627,
+   "val": 1.4880727005004883,
+   "seconds": 11.655115842819214
+  },
+  {
+   "step": 500,
+   "train": 1.2632331848144531,
+   "val": 1.2609433460235595,
+   "seconds": 22.15123462677002
+  },
+  {
+   "step": 750,
+   "train": 1.2412604093551636,
+   "val": 1.184331533908844,
+   "seconds": 32.078656911849976
+  },
+  {
+   "step": 1000,
+   "train": 1.1610374450683594,
+   "val": 1.125291166305542,
+   "seconds": 42.20291566848755
+  },
+  {
+   "step": 1250,
+   "train": 1.0897730588912964,
+   "val": 1.083201632499695,
+   "seconds": 52.14417886734009
+  },
+  {
+   "step": 1500,
+   "train": 1.0312273502349854,
+   "val": 1.0591182076931,
+   "seconds": 62.23635792732239
+  },
+  {
+   "step": 1750,
+   "train": 0.968341588973999,
+   "val": 1.0336732721328736,
+   "seconds": 72.50446486473083
+  },
+  {
+   "step": 2000,
+   "train": 0.9274831414222717,
+   "val": 1.0084965240955353,
+   "seconds": 82.47665095329285
+  },
+  {
+   "step": 2250,
+   "train": 0.958454966545105,
+   "val": 0.9927005529403686,
+   "seconds": 92.80460906028748
+  },
+  {
+   "step": 2500,
+   "train": 0.9157843589782715,
+   "val": 0.981157009601593,
+   "seconds": 104.92256784439087
+  },
+  {
+   "step": 2750,
+   "train": 0.9383503198623657,
+   "val": 0.9746006405353547,
+   "seconds": 114.82766675949097
+  },
+  {
+   "step": 3000,
+   "train": 0.959231972694397,
+   "val": 0.9731371819972991,
+   "seconds": 125.60399389266968
+  }
+ ],
+ "nan_step": null,
+ "seconds": 125.60518503189087,
+ "final_val": 0.9731371819972991,
+ "sample": "Once upon a time, there was a big m longer from the end. The train was wrong of the hole and pulled it back. Then, a mild came careful. The little girl could play with the toys, but did, while they were very sad. Timmy saw some clothes and said, \"You would stay away. Jack was come inside the steal treats and fly. I"
+}

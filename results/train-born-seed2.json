@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "born",
+  "seed": 2,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.001,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 816896,
+ "attention_params": 262656,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.776843070983887,
+   "val": 4.7651817417144775,
+   "seconds": 1.4831490516662598
+  },
+  {
+   "step": 250,
+   "train": 1.7883384227752686,
+   "val": 1.7549133777618409,
+   "seconds": 16.300424814224243
+  },
+  {
+   "step": 500,
+   "train": 1.450585126876831,
+   "val": 1.4503528761863709,
+   "seconds": 29.37959599494934
+  },
+  {
+   "step": 750,
+   "train": 1.4002034664154053,
+   "val": 1.328889627456665,
+   "seconds": 42.69920611381531
+  },
+  {
+   "step": 1000,
+   "train": 1.2594069242477417,
+   "val": 1.2406513714790344,
+   "seconds": 56.23065114021301
+  },
+  {
+   "step": 1250,
+   "train": 1.166351079940796,
+   "val": 1.187505567073822,
+   "seconds": 69.45230293273926
+  },
+  {
+   "step": 1500,
+   "train": 1.1097568273544312,
+   "val": 1.1483527851104736,
+   "seconds": 83.03996109962463
+  },
+  {
+   "step": 1750,
+   "train": 1.0464316606521606,
+   "val": 1.1097814047336578,
+   "seconds": 95.868243932724
+  },
+  {
+   "step": 2000,
+   "train": 1.0065823793411255,
+   "val": 1.0787210655212403,
+   "seconds": 109.5984718799591
+  },
+  {
+   "step": 2250,
+   "train": 1.0154211521148682,
+   "val": 1.0564520263671875,
+   "seconds": 124.4518940448761
+  },
+  {
+   "step": 2500,
+   "train": 0.9786170721054077,
+   "val": 1.0437453615665435,
+   "seconds": 138.82236695289612
+  },
+  {
+   "step": 2750,
+   "train": 1.0089499950408936,
+   "val": 1.0358344626426697,
+   "seconds": 152.97947788238525
+  },
+  {
+   "step": 3000,
+   "train": 1.0291069746017456,
+   "val": 1.0337908232212067,
+   "seconds": 166.32096600532532
+  }
+ ],
+ "nan_step": null,
+ "seconds": 166.3220329284668,
+ "final_val": 1.0337908232212067,
+ "sample": "Once upon a time, there was a big molled and the frog were althing rain of the woods living and rege as her branches and started to go fast as so share colorful and stonil them.\n<|endoftext|>\n\nOnce was friends note stopped brother things. They looked at himself and owner and they because their toys swing and daught"
+}
