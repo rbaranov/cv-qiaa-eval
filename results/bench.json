@@ -2,96 +2,82 @@
  "batch": 4,
  "d_model": 128,
  "heads": 4,
+ "grid_size": 64,
  "rows": [
   {
-   "T": 64,
-   "kind": "softmax",
-   "ms": 32.7298641204834,
-   "activation_mb": 0.890625
-  },
-  {
-   "T": 64,
-   "kind": "born",
-   "ms": 27.898629506429035,
-   "activation_mb": 1.41015625
-  },
-  {
-   "T": 64,
-   "kind": "cvqiaa",
-   "ms": 66.99903806050618,
-   "activation_mb": 5.31640625
-  },
-  {
-   "T": 128,
-   "kind": "softmax",
-   "ms": 33.455451329549156,
-   "activation_mb": 2.28125
-  },
-  {
-   "T": 128,
-   "kind": "born",
-   "ms": 30.904452006022137,
-   "activation_mb": 4.3515625
-  },
-  {
-   "T": 128,
-   "kind": "cvqiaa",
-   "ms": 477.4589538574219,
-   "activation_mb": 14.7578125
+   "T": 256,
+   "kind": "sdpa",
+   "saved_mb": 3.328125,
+   "ms_mps": 17.159700393676758
   },
   {
    "T": 256,
-   "kind": "softmax",
-   "ms": 42.28496551513672,
-   "activation_mb": 6.5625
+   "kind": "naive softmax",
+   "saved_mb": 10.875,
+   "ms_mps": 16.94933573404948
   },
   {
    "T": 256,
    "kind": "born",
-   "ms": 46.25837008158366,
-   "activation_mb": 14.828125
+   "saved_mb": 15.078125,
+   "ms_mps": 14.713287353515625
   },
   {
    "T": 256,
    "kind": "cvqiaa",
-   "ms": 331.27737045288086,
-   "activation_mb": 46.015625
+   "saved_mb": 46.19140625,
+   "largest_temporary_mb": 64.0,
+   "ms_mps": 101.76579157511394
   },
   {
    "T": 512,
-   "kind": "softmax",
-   "ms": 113.21441332499187,
-   "activation_mb": 21.125
+   "kind": "sdpa",
+   "saved_mb": 6.40625,
+   "ms_mps": 20.91693878173828
+  },
+  {
+   "T": 512,
+   "kind": "naive softmax",
+   "saved_mb": 37.625,
+   "ms_mps": 79.07191912333171
   },
   {
    "T": 512,
    "kind": "born",
-   "ms": 114.91163571675618,
-   "activation_mb": 54.15625
+   "saved_mb": 54.40625,
+   "ms_mps": 30.38199742635091
   },
   {
    "T": 512,
    "kind": "cvqiaa",
-   "ms": 412.8409226735433,
-   "activation_mb": 158.03125
+   "saved_mb": 158.2109375,
+   "largest_temporary_mb": 256.0,
+   "ms_mps": 332.40048090616864
   },
   {
    "T": 1024,
-   "kind": "softmax",
-   "ms": 126.93309783935547,
-   "activation_mb": 74.25
+   "kind": "sdpa",
+   "saved_mb": 12.5625,
+   "ms_mps": 22.82238006591797
+  },
+  {
+   "T": 1024,
+   "kind": "naive softmax",
+   "saved_mb": 139.5,
+   "ms_mps": 26.858965555826824
   },
   {
    "T": 1024,
    "kind": "born",
-   "ms": 150.1187483469645,
-   "activation_mb": 206.3125
+   "saved_mb": 206.5625,
+   "ms_mps": 47.879934310913086
   },
   {
    "T": 1024,
    "kind": "cvqiaa",
-   "ms": 1370.7826137542725,
-   "activation_mb": 580.0625
+   "saved_mb": 580.25,
+   "largest_temporary_mb": 1024.0,
+   "ms_mps": 1527.2176265716553
   }
  ]
 }

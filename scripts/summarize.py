@@ -9,6 +9,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 runs = {}
 for path in sorted(glob.glob(os.path.join(ROOT, "results", "train-*.json"))):
     r = json.load(open(path))
+    if r["args"]["lr"] != 1e-3:
+        continue  # other learning rates are reported separately in README
     runs.setdefault(r["args"]["kind"], []).append(r)
 
 lines = ["| Вариант | Запусков | Val loss (nats) | Бит на символ | Секунд на 3000 шагов | Параметров attention | NaN |",

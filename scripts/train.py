@@ -108,6 +108,7 @@ log["seconds"] = time.time() - t0
 log["final_val"] = log["curve"][-1]["val"] if log["curve"] else None
 log["sample"] = sample(model) if log["nan_step"] is None else None
 os.makedirs(os.path.join(ROOT, "results"), exist_ok=True)
-with open(os.path.join(ROOT, "results", f"train-{args.kind}-seed{args.seed}.json"), "w") as f:
+suffix = "" if args.lr == 1e-3 else f"-lr{args.lr:g}"  # runs with the default lr keep their old names
+with open(os.path.join(ROOT, "results", f"train-{args.kind}-seed{args.seed}{suffix}.json"), "w") as f:
     json.dump(log, f, ensure_ascii=False, indent=1)
 print(log["sample"])
