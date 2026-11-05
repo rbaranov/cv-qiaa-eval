@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "cvqiaa",
+  "seed": 0,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.003,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 735488,
+ "attention_params": 181248,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.688850402832031,
+   "val": 4.653276739120483,
+   "seconds": 25.851362228393555
+  },
+  {
+   "step": 250,
+   "train": 2.143991470336914,
+   "val": 2.165082821846008,
+   "seconds": 185.0167932510376
+  },
+  {
+   "step": 500,
+   "train": 1.751175880432129,
+   "val": 1.7808250880241394,
+   "seconds": 340.49062395095825
+  },
+  {
+   "step": 750,
+   "train": 1.5906314849853516,
+   "val": 1.512104275226593,
+   "seconds": 531.0724511146545
+  },
+  {
+   "step": 1000,
+   "train": 1.3421013355255127,
+   "val": 1.371515097618103,
+   "seconds": 706.1497201919556
+  },
+  {
+   "step": 1250,
+   "train": 1.249934196472168,
+   "val": 1.265341148376465,
+   "seconds": 877.9775910377502
+  },
+  {
+   "step": 1500,
+   "train": 1.1742894649505615,
+   "val": 1.201161072254181,
+   "seconds": 1055.425593137741
+  },
+  {
+   "step": 1750,
+   "train": 1.0743566751480103,
+   "val": 1.1450161170959472,
+   "seconds": 1224.8609640598297
+  },
+  {
+   "step": 2000,
+   "train": 1.1297645568847656,
+   "val": 1.1122690784931182,
+   "seconds": 1400.590897321701
+  },
+  {
+   "step": 2250,
+   "train": 1.0957396030426025,
+   "val": 1.0767426919937133,
+   "seconds": 1565.5770602226257
+  },
+  {
+   "step": 2500,
+   "train": 1.0638129711151123,
+   "val": 1.0569228053092956,
+   "seconds": 1735.6122832298279
+  },
+  {
+   "step": 2750,
+   "train": 1.01865816116333,
+   "val": 1.044442858695984,
+   "seconds": 1924.9702060222626
+  },
+  {
+   "step": 3000,
+   "train": 1.025165319442749,
+   "val": 1.0416721248626708,
+   "seconds": 2155.564087152481
+  }
+ ],
+ "nan_step": null,
+ "seconds": 2155.58083319664,
+ "final_val": 1.0416721248626708,
+ "sample": "Once upon a time, there was a boy named Timmy. Timmy was not to go on an always looked boats and went inside. One day, Timmy's cald hopped back and had no place the box, she oldears and was delicious to steets and it out work. She was was that it was would stepped and felt sorry. Finally, she was so excited, it was"
+}

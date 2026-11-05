@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "softmax",
+  "seed": 0,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.003,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 816896,
+ "attention_params": 262656,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.698465824127197,
+   "val": 4.663972549438476,
+   "seconds": 1.8975000381469727
+  },
+  {
+   "step": 250,
+   "train": 1.3462650775909424,
+   "val": 1.3647575569152832,
+   "seconds": 13.088023900985718
+  },
+  {
+   "step": 500,
+   "train": 1.1646325588226318,
+   "val": 1.2057543444633483,
+   "seconds": 24.32916498184204
+  },
+  {
+   "step": 750,
+   "train": 1.1562671661376953,
+   "val": 1.1287301135063172,
+   "seconds": 36.1901421546936
+  },
+  {
+   "step": 1000,
+   "train": 1.0854569673538208,
+   "val": 1.0822993123531341,
+   "seconds": 47.41854810714722
+  },
+  {
+   "step": 1250,
+   "train": 1.0115183591842651,
+   "val": 1.0428512465953828,
+   "seconds": 60.181480169296265
+  },
+  {
+   "step": 1500,
+   "train": 0.9778788685798645,
+   "val": 1.0122929799556732,
+   "seconds": 75.54097414016724
+  },
+  {
+   "step": 1750,
+   "train": 0.9184445738792419,
+   "val": 0.985684916973114,
+   "seconds": 88.77601027488708
+  },
+  {
+   "step": 2000,
+   "train": 0.9830245971679688,
+   "val": 0.965727390050888,
+   "seconds": 99.2767231464386
+  },
+  {
+   "step": 2250,
+   "train": 0.9365417957305908,
+   "val": 0.9436095571517944,
+   "seconds": 109.27293705940247
+  },
+  {
+   "step": 2500,
+   "train": 0.930930495262146,
+   "val": 0.9276308798789978,
+   "seconds": 119.2761960029602
+  },
+  {
+   "step": 2750,
+   "train": 0.8899686336517334,
+   "val": 0.9192378592491149,
+   "seconds": 131.13515996932983
+  },
+  {
+   "step": 3000,
+   "train": 0.8702178597450256,
+   "val": 0.9174530375003814,
+   "seconds": 142.57219290733337
+  }
+ ],
+ "nan_step": null,
+ "seconds": 142.57296299934387,
+ "final_val": 0.9174530375003814,
+ "sample": "Once upon a time, there was a bit monster who had not see how some of the lunch. Tom loved to play with his best friend, scary. One day, Tim and Kitty couldn't find some smile. They did not listen to the petals. They say they are happy that they saw a big ball. They want to stay and said, \"Thank you, Max and Sue. I"
+}

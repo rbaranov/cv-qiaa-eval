@@ -1,11 +1,13 @@
 """Checks of the paper's code that need no training. Writes results/diagnose.json.
 
 1. Paper demo control: the paper's 5-step demo on random tokens, run with
-   CV-QIAA, with standard attention and with attention switched off. If loss
-   drops without attention too, the demo shows memorisation, not that the
-   attention works.
+   CV-QIAA, with standard attention and with attention switched off, over 30
+   seeds; within a seed all variants get the same data. Without attention the
+   model sees only the current token, so if loss drops for it too, the demo
+   does not test attention.
 2. Spatial overlap at context 128 with the paper's positions 0.1 * index and
-   canvas x in [-5, 5]: where each head's weight goes.
+   canvas x in [-5, 5]: where each head's weight goes. Plus the paper's own
+   formula exp(-dt^2 / 4 sigma(t)^2) without the grid: its range per head.
 3. NaN gradients on CPU: count of parameters with NaN gradient after one
    backward pass of the TinyStories-sized model.
 4. The same model with |Psi|^2 written as Re^2 + Im^2: NaN over 20 CPU steps.
@@ -24,22 +26,26 @@ from models import LM  # noqa: E402
 out = {}
 
 # 1. Paper demo with and without attention (same sizes as the paper's WaveLLM).
+SEEDS = 30
 demo = {}
 for kind in ["cvqiaa", "softmax", "none"]:
-    torch.manual_seed(42)
-    model = LM(kind, 10, d_model=32, n_heads=4, d_ff=64, n_layers=2)
-    opt = torch.optim.AdamW(model.parameters(), lr=0.01)
-    data = torch.randint(0, 10, (4, 12))
-    losses = []
-    for _ in range(5):
-        opt.zero_grad()
-        loss = F.cross_entropy(model(data[:, :-1]).reshape(-1, 10), data[:, 1:].reshape(-1))
-        loss.backward()
-        opt.step()
-        losses.append(round(loss.item(), 4))
-    demo[kind] = losses
-out["paper_demo_losses"] = demo
-print("paper demo, 5 steps on random tokens:", demo)
+    curves = []
+    for seed in range(SEEDS):
+        data = torch.randint(0, 10, (4, 12), generator=torch.Generator().manual_seed(seed))
+        torch.manual_seed(seed)
+        model = LM(kind, 10, d_model=32, n_heads=4, d_ff=64, n_layers=2)
+        opt = torch.optim.AdamW(model.parameters(), lr=0.01)
+        losses = []
+        for _ in range(5):
+            opt.zero_grad()
+            loss = F.cross_entropy(model(data[:, :-1]).reshape(-1, 10), data[:, 1:].reshape(-1))
+            loss.backward()
+            opt.step()
+            losses.append(loss.item())
+        curves.append(losses)
+    demo[kind] = [round(sum(c[i] for c in curves) / SEEDS, 3) for i in range(5)]
+out["paper_demo_mean_losses_30_seeds"] = demo
+print(f"paper demo, 5 steps on random tokens, mean over {SEEDS} seeds:", demo)
 
 # 2. Spatial overlap, copied from FreeEvolutionQuantumAttentionHead.forward.
 T, G = 128, 64
@@ -65,7 +71,12 @@ for s0 in [4.0, 0.5]:
         # |Psi|^2 carries overlap squared; share of that positional weight on the 5 nearest tokens
         "share_of_weight_on_5_nearest_for_token": {
             i: float((ov[i, i - 4:i + 1] ** 2).sum() / (ov[i, :i + 1] ** 2).sum()) for i in [50, 70, 90, 127]},
+        "uniform_share_of_5_nearest_for_token": {i: 5 / (i + 1) for i in [50, 70, 90, 127]},
     }
+    # The paper's formula (section 2.2) without the grid, for causal pairs where dt = s_Q - s_K.
+    t = torch.linspace(0, 1000, 100001)
+    formula = torch.exp(-t ** 2 / (4 * s0 ** 2 * (1 + (t / s0 ** 2) ** 2)))
+    overlap[f"sigma0={s0}"]["paper_formula_min_max_over_distance"] = [float(formula.min()), float(formula.max())]
 out["overlap_ctx128"] = overlap
 print(json.dumps(overlap, indent=1))
 
