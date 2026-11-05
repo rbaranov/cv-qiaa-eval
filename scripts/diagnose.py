@@ -8,6 +8,7 @@
    canvas x in [-5, 5]: where each head's weight goes.
 3. NaN gradients on CPU: count of parameters with NaN gradient after one
    backward pass of the TinyStories-sized model.
+4. The same model with |Psi|^2 written as Re^2 + Im^2: NaN over 20 CPU steps.
 """
 import json
 import os
@@ -61,6 +62,9 @@ for s0 in [4.0, 0.5]:
         "first_token_that_cannot_see_itself": int(self_zero[0]) if len(self_zero) else None,
         "distance_to_strongest_key_for_token": {i: int(strongest[i]) for i in [10, 30, 60, 127]},
         "token127_overlap_by_distance": {d: float(ov[127, 127 - d]) for d in [0, 1, 5, 20, 60, 127]},
+        # |Psi|^2 carries overlap squared; share of that positional weight on the 5 nearest tokens
+        "share_of_weight_on_5_nearest_for_token": {
+            i: float((ov[i, i - 4:i + 1] ** 2).sum() / (ov[i, :i + 1] ** 2).sum()) for i in [50, 70, 90, 127]},
     }
 out["overlap_ctx128"] = overlap
 print(json.dumps(overlap, indent=1))
@@ -74,6 +78,31 @@ bad = [n for n, p in model.named_parameters() if p.grad is not None and torch.is
 total = sum(1 for p in model.parameters() if p.grad is not None)
 out["cpu_nan_grad_params"] = {"with_nan": len(bad), "total": total}
 print(f"CPU: {len(bad)} of {total} parameter tensors have NaN gradient after one step")
+
+# 4. The NaN fix from the paper's own formula |Psi|^2 = Re^2 + Im^2: 20 CPU steps.
+import importlib.util  # noqa: E402
+import models  # noqa: E402
+
+src = open(os.path.join(ROOT, "src", "wavellm_fixed.py")).read()
+patched = src.replace("wave_intensities = torch.abs(unified_complex_amplitudes) ** 2",
+                      "wave_intensities = unified_complex_amplitudes.real ** 2 + unified_complex_amplitudes.imag ** 2")
+assert patched != src
+spec = importlib.util.spec_from_loader("wavellm_nanfix", loader=None)
+nanfix = importlib.util.module_from_spec(spec)
+exec(compile(patched, "wavellm_nanfix", "exec"), nanfix.__dict__)
+models.MultiHeadUnifiedQuantumAttention = nanfix.MultiHeadUnifiedQuantumAttention
+torch.manual_seed(0)
+model = models.LM("cvqiaa", 100)
+opt = torch.optim.AdamW(model.parameters(), 1e-3)
+nan_steps = 0
+for _ in range(20):
+    loss = F.cross_entropy(model(x).reshape(-1, 100), x.reshape(-1))
+    opt.zero_grad()
+    loss.backward()
+    nan_steps += any(torch.isnan(p.grad).any().item() for p in model.parameters() if p.grad is not None)
+    opt.step()
+out["cpu_nan_after_fix"] = {"steps": 20, "steps_with_nan": nan_steps}
+print(f"CPU with Re^2 + Im^2: {nan_steps} of 20 steps with NaN gradient")
 
 with open(os.path.join(ROOT, "results", "diagnose.json"), "w") as f:
     json.dump(out, f, indent=1)
