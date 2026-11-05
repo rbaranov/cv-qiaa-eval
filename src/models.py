@@ -11,6 +11,19 @@ WaveLLM. Attention variants:
            normalisation |s|^2 / sum |s|^2; isolates that one idea
   none     attention output is zero: the model sees only the current token,
            a floor that shows how much a variant gets from context
+  cvqiaa2  AnalyticalCVQIAALayer, the grid-free version the authors sent after
+           the review (src/paper_v2_replacement.py, as published); it takes
+           positions from token indices itself
+  cvqiaa2-noenv  the same layer with the wave-packet envelope switched off
+           (sigma0 fixed at e^20, so the envelope is sqrt(2) for every pair):
+           shows what the envelope adds
+  cvqiaa2-wide  the same layer with sigma0 initialised at 40 instead of 2
+  softmax-env  softmax attention without RoPE that takes the v2 envelope as
+           its positional part (log envelope^2 added to the scores, learnable
+           sigma0 per head, init 2): differs from cvqiaa2 only in softmax vs
+           the Born rule (and real vs complex q, k)
+  softmax-env-wide  the same with sigma0 initialised at 40, the control for
+           cvqiaa2-wide
 """
 import math
 import os
@@ -21,6 +34,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 sys.path.insert(0, os.path.dirname(__file__))
+from paper_v2_replacement import AnalyticalCVQIAALayer  # noqa: E402
 from wavellm_fixed import MultiHeadUnifiedQuantumAttention  # noqa: E402
 
 
@@ -61,6 +75,43 @@ class StandardAttention(nn.Module):
         return self.out(y.transpose(1, 2).reshape(B, T, C))
 
 
+def log_envelope_sq(T, log_sigma0):
+    # log of envelope^2 from AnalyticalCVQIAALayer (without its 1e-9 guards), shape [H, T, T]
+    pos = torch.arange(T, device=log_sigma0.device, dtype=torch.float32)
+    dt = (pos[:, None] - pos[None, :]).clamp(min=0)
+    s0_sq = (2 * log_sigma0).exp().view(-1, 1, 1)
+    st_sq = s0_sq + dt ** 2 / s0_sq
+    return torch.log(2 * s0_sq / st_sq) - dt ** 2 / st_sq
+
+
+class EnvelopeSoftmax(StandardAttention):
+    def __init__(self, d_model, n_heads, sigma0=2.0):
+        super().__init__(d_model, n_heads)
+        self.log_sigma0 = nn.Parameter(torch.log(torch.ones(n_heads) * sigma0))
+
+    def forward(self, x, positions=None):
+        B, T, C = x.shape
+        q, k, v = self.qkv(x).view(B, T, 3, self.h, self.d).permute(2, 0, 3, 1, 4)
+        future = ~torch.tril(torch.ones(T, T, dtype=torch.bool, device=x.device))
+        bias = log_envelope_sq(T, self.log_sigma0).masked_fill(future, float("-inf"))
+        y = F.scaled_dot_product_attention(q, k, v, attn_mask=bias)
+        return self.out(y.transpose(1, 2).reshape(B, T, C))
+
+
+class Analytical(nn.Module):
+    def __init__(self, d_model, n_heads, envelope=True, sigma0=2.0):
+        super().__init__()
+        self.layer = AnalyticalCVQIAALayer(d_model, n_heads)
+        if sigma0 != 2.0:
+            self.layer.log_sigma0.data.fill_(math.log(sigma0))
+        if not envelope:
+            self.layer.log_sigma0.data.fill_(20.0)
+            self.layer.log_sigma0.requires_grad_(False)
+
+    def forward(self, x, positions=None):
+        return self.layer(x)
+
+
 class NoAttention(nn.Module):
     def forward(self, x, positions=None):
         return torch.zeros_like(x)
@@ -71,6 +122,11 @@ class Block(nn.Module):
         super().__init__()
         if kind == "cvqiaa":
             self.attn = MultiHeadUnifiedQuantumAttention(d_model, n_heads)
+        elif kind in ("cvqiaa2", "cvqiaa2-noenv", "cvqiaa2-wide"):
+            self.attn = Analytical(d_model, n_heads, envelope=kind != "cvqiaa2-noenv",
+                                   sigma0=40.0 if kind == "cvqiaa2-wide" else 2.0)
+        elif kind in ("softmax-env", "softmax-env-wide"):
+            self.attn = EnvelopeSoftmax(d_model, n_heads, sigma0=40.0 if kind == "softmax-env-wide" else 2.0)
         elif kind == "none":
             self.attn = NoAttention()
         else:

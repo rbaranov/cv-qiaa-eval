@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.join(ROOT, "src"))
 from models import LM  # noqa: E402
 
 p = argparse.ArgumentParser()
-p.add_argument("--kind", required=True, choices=["softmax", "cvqiaa", "born", "none"])
+p.add_argument("--kind", required=True, choices=["softmax", "cvqiaa", "born", "none", "cvqiaa2", "cvqiaa2-noenv", "cvqiaa2-wide", "softmax-env", "softmax-env-wide"])
 p.add_argument("--seed", type=int, default=0)
 p.add_argument("--steps", type=int, default=3000)
 p.add_argument("--batch", type=int, default=32)
@@ -107,6 +107,10 @@ for step in range(args.steps):
 log["seconds"] = time.time() - t0
 log["final_val"] = log["curve"][-1]["val"] if log["curve"] else None
 log["sample"] = sample(model) if log["nan_step"] is None else None
+sigma = [[p.exp().tolist() for n, p in l.attn.named_parameters() if n.endswith("log_sigma0") and p.requires_grad]
+         for l in model.layers]
+if any(sigma):  # learned wave-packet widths, per layer and head
+    log["sigma0"] = [s[0] for s in sigma]
 os.makedirs(os.path.join(ROOT, "results"), exist_ok=True)
 suffix = "" if args.lr == 1e-3 else f"-lr{args.lr:g}"  # runs with the default lr keep their old names
 with open(os.path.join(ROOT, "results", f"train-{args.kind}-seed{args.seed}{suffix}.json"), "w") as f:

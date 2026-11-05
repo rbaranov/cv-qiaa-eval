@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "softmax",
+  "seed": 0,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.006,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 816896,
+ "attention_params": 262656,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.698465824127197,
+   "val": 4.632958564758301,
+   "seconds": 1.6792428493499756
+  },
+  {
+   "step": 250,
+   "train": 1.3439983129501343,
+   "val": 1.3700073194503783,
+   "seconds": 14.36994194984436
+  },
+  {
+   "step": 500,
+   "train": 1.1699028015136719,
+   "val": 1.2216690707206725,
+   "seconds": 27.194758892059326
+  },
+  {
+   "step": 750,
+   "train": 1.1891801357269287,
+   "val": 1.1440220391750335,
+   "seconds": 42.01069784164429
+  },
+  {
+   "step": 1000,
+   "train": 1.0918035507202148,
+   "val": 1.0880539727210998,
+   "seconds": 54.324862003326416
+  },
+  {
+   "step": 1250,
+   "train": 1.0296425819396973,
+   "val": 1.045064733028412,
+   "seconds": 66.01911091804504
+  },
+  {
+   "step": 1500,
+   "train": 0.9818675518035889,
+   "val": 1.0150765299797058,
+   "seconds": 76.39451789855957
+  },
+  {
+   "step": 1750,
+   "train": 0.9267281293869019,
+   "val": 0.9864523506164551,
+   "seconds": 88.64392805099487
+  },
+  {
+   "step": 2000,
+   "train": 0.9884880781173706,
+   "val": 0.9645819544792176,
+   "seconds": 100.43504691123962
+  },
+  {
+   "step": 2250,
+   "train": 0.9504314661026001,
+   "val": 0.9401511681079865,
+   "seconds": 111.22143268585205
+  },
+  {
+   "step": 2500,
+   "train": 0.9370116591453552,
+   "val": 0.9232991755008697,
+   "seconds": 124.73183989524841
+  },
+  {
+   "step": 2750,
+   "train": 0.8855788707733154,
+   "val": 0.9128771424293518,
+   "seconds": 138.6306917667389
+  },
+  {
+   "step": 3000,
+   "train": 0.8711174726486206,
+   "val": 0.9108047425746918,
+   "seconds": 153.28568768501282
+  }
+ ],
+ "nan_step": null,
+ "seconds": 153.28713488578796,
+ "final_val": 0.9108047425746918,
+ "sample": "Once upon a time, there was a boy named Timmy. Timmy loved to play outside in the sand beautiful with it. One day, Lily went to the park and they see the brave take booking a little different started to start and sister.\nThe fox was just a stick, but she was so excited. When they got to her and takes her mom if she"
+}

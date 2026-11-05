@@ -1,0 +1,1102 @@
+[
+ {
+  "key": "repro",
+  "found": {
+   "summary": "The transcriptions match the PDFs, and both PDFs contain the same layer. Both scripts run on CPU and print the same thing every time: Blueprint gives Test 1 PASSED and 149.66 MB, Replacement gives a pass and 42.234 MB. Neither test checks what it claims. Test 1 never produces a single subnormal value: at log σ0 = −15 or −12 every value is a normal float32. In that state the layer attends only to the current token, and the same test also passes at the default σ0. Test 2 compares 149.66 MB, counted without deduplication, against ~158 MB, which was counted by bench.py with deduplication. Counted the same way, v2 saves 15–17% less than v1, and it saves 3.6× more than naive softmax. v1's 158 MB never included the grid. The grid cost was in temporary memory, which this test does not measure; there v2 really is about 3.7× lower than v1 (peak RSS). The specific v1 NaN mechanism (abs on subnormal values) is gone. But v2 has new NaN boundaries: at log σ0 ≤ −23.75 log_sigma0.grad becomes NaN, and at log σ0 ≥ 44.5 everything does. Blueprint's Test 1 recipe (T=128) would have caught v1's NaN. Replacement's recipe (T=64) would not.",
+   "findings": [
+    {
+     "id": "transcription-fidelity",
+     "claim": "src/paper_v2_blueprint.py and src/paper_v2_replacement.py are faithful transcriptions of the two v2 PDFs",
+     "verdict": "holds",
+     "evidence": "PDF text was extracted with PDFKit and compared after removing whitespace (and '_' for the Replacement PDF, whose text layer splits underscores). Lengths are identical: 3620 = 3620 chars and 4802 = 4802 chars. Every remaining difference is a move pair caused by extraction order, e.g. 'sigma0))**2' moved, 'mask=True):' moved. All 8 pages were rendered to PNG and checked visually; no difference changes behaviour. In the PDF, wrapped lines such as the third banner print( in the Replacement appear at column 0. These are display wraps, and the transcription indents them correctly.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/repro/text_diff.py"
+    },
+    {
+     "id": "same-layer",
+     "claim": "Both PDFs contain the same AnalyticalCVQIAALayer",
+     "verdict": "holds",
+     "evidence": "With docstrings removed, the ASTs differ in one place only: Blueprint's `return self.out_proj(out.transpose(1,2).contiguous().view(B,T,C))` is split into two statements in Replacement. With shared weights and random log_sigma0 in [-3,3] over 3 seeds, the differences in outputs, x.grad and parameter grads are all exactly 0. 99,076 parameters at d=128, H=4.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/repro/compare_layers.py"
+    },
+    {
+     "id": "scripts-run-as-published",
+     "claim": "The authors' verification scripts run and pass",
+     "verdict": "holds",
+     "evidence": "5 runs each on CPU. Blueprint prints 'Test 1 (CPU Gradient Stability): PASSED (0 NaNs found)' and 'Test 2 (Saved Autograd Tensors at Context 512): 149.66 MB' every run; it has no seed, but the byte count depends only on tensor shapes. Replacement prints 'Test Passed. Absolute stability achieved on CPU', '42.234 MB' and 'Grid-free O(T^2) execution confirmed' every run. That last status line is an unconditional print with no check behind it. Replacement creates AdamW but never calls step(), so its 'integration suite' trains nothing.",
+     "severity": "info",
+     "script": ""
+    },
+    {
+     "id": "test1-no-subnormals",
+     "claim": "Test 1 'explicitly force[s] parameters into subnormal bounds' (Blueprint, log_sigma0=-15); 'Non-Zero Subnormal Stability' (Replacement, -12)",
+     "verdict": "fails",
+     "evidence": "At -15 (σ0=3.06e-7, σ0²=9.4e-14), all values stay normal. Envelope on the diagonal is 0.01368; the formula gives √2, but the +1e-9 in the denominator dominates. Envelope off the diagonal runs from 1.32e-13 (dt=1) to 1.04e-15 (dt=127). A off the diagonal runs from 3.4e-35 to 1.3e-25, all above the float32 normal minimum 1.18e-38. Over 50 seeds there are 0 subnormal values in any intermediate, in their grads, or in parameter and input grads. At -12 (Replacement), A off the diagonal runs from 3.9e-28 to 1.4e-20, again with 0 subnormals. Sweep (seed 0): subnormals first appear at log σ0=-18 (112 values), then -20 (75,332) and -22 (129,738).",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/repro/test1_seeds.py"
+    },
+    {
+     "id": "test1-degenerate-state",
+     "claim": "Test 1 checks gradient stability of the attention layer",
+     "verdict": "partly",
+     "evidence": "In the forced state the layer only copies each token's own value; there is no cross-token attention. At -15 over 50 seeds, the largest weight on any other token is 4.6e-18. Row sums of A_normalized drop as low as 0.080: the diagonal A goes down to 1.3e-9, comparable to the +1e-9 in the normalisation, and 55 of 51,200 rows sum to less than 0.99. At -12 (Replacement), max|y − out_proj(V_own)| = 2.4e-6 against |y| ≤ 1.13. The same Test 1 recipe also passes at the default log σ0 = log 2 (0 NaN tensors), so forcing σ0 adds nothing. The test does confirm finite gradients, but only for a non-attending layer.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/repro/test1_state.py"
+    },
+    {
+     "id": "test1-vs-v1",
+     "claim": "Would the same kind of test have caught the v1 NaN?",
+     "verdict": "partly",
+     "evidence": "Blueprint's recipe (B=2, T=128, C=64, CPU, sum().backward(), isnan on grads) applied to v1 from wavellm_fixed.py, with positions 0.1·index: 10 of 34 parameter tensors and x.grad are NaN in 5 of 5 seeds. Also at B=4, T=128, C=128. So a Blueprint-style test would have caught v1. Replacement's recipe uses T=64, where v1 has 0/34 NaN at C=64 and C=128 over 5 seeds; v1's first NaN appears between T=93 and T=96. So Replacement's Test 1 cannot tell v1 from v2. v1's NaN depends on T, not on any parameter: at T=128 its narrow-head overlaps include 21 subnormal and 62 exactly zero causal pairs. Forcing σ0 is therefore unrelated to catching it.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/repro/thresholds.py"
+    },
+    {
+     "id": "v2-nan-boundaries",
+     "claim": "'CPU NaNs Fixed: We eliminated the torch.abs() derivative singularity'",
+     "verdict": "partly",
+     "evidence": "The abs mechanism is gone. At log σ0 between -18 and -22 there are up to 129,738 subnormal values in the forward pass and 0 NaN, so Re²+Im² handles them. New boundaries exist, though. At log σ0 ≤ -23.75, log_sigma0.grad is NaN (5/5 seeds; at -23.5, 0/5). The cause: the sqrt argument 2σ0²/(σt²+1e-9) underflows to exactly 0 (1,326 causal pairs at -24, 6,903 at -25), and the sqrt gradient becomes inf·0. At log σ0 ≥ 44.5, σ0² overflows, and all 16,384 outputs and all 12 parameter grads are NaN. At log σ0 ≤ -25, attention row sums go to 0 and the layer outputs only the bias. Whether training can reach these values was not tested; from the init value 0.69 it would take a drift of more than 24.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/repro/sweep_sigma.py"
+    },
+    {
+     "id": "test2-mixed-counting",
+     "claim": "Test 2 tracks saved tensors 'exactly like cv-qiaa-eval hooks'; 149.66 MB vs '~158 MB' for the old implementation",
+     "verdict": "fails",
+     "evidence": "Blueprint's hook does not deduplicate. At T=512, v2 makes 45 pack calls on 37 distinct tensors, so 16.00 MB is counted twice. bench.py deduplicates by (data_ptr, dtype, shape). Wrapping backward adds 0 pack calls (45 forward = 45 forward+backward). Recount at B=4, D=128, H=4, T=512, authors' method / bench method: v1 180.23 / 158.21 (bench.json gives 158.21); v2 149.66 / 133.66; naive softmax 37.75 / 37.62; born 54.53 / 54.41; sdpa 6.53 / 6.41. The letter puts 149.66 (no dedup) next to 158 (dedup). Counted the same way, the reduction is 17.0% (authors' method) or 15.5% (bench method). By bench method v2 is 3.55× naive softmax, 2.46× born and 20.9× sdpa. Bench method at other lengths: T=256 v2 36.45 vs v1 46.19; T=1024 v2 511.44 vs v1 580.25.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/repro/memory_recount.py"
+    },
+    {
+     "id": "test2-grid-explanation",
+     "claim": "'The old implementation required ~158 MB at this scale due to grid generation'",
+     "verdict": "fails",
+     "evidence": "v1's 158.21 MB of saved tensors at T=512 contains no grid tensor. Contents: 12 complex64 tensors (4,512,512) = 96 MB, 8 float32 tensors (4,512,512) = 32 MB, 60 tensors (4,512,32) = 15 MB, and so on. No 4-D tensor has the grid dimension 64. x_grid.requires_grad and positions.requires_grad are both False, so the grid computation is outside autograd. The grid cost was in temporary memory, which Test 2 does not measure. Peak RSS growth for one forward+backward in a fresh process: T=512, v1 882 MB vs v2 229–240 MB; T=1024, v1 3,210 MB vs v2 843 MB. So the real gain is about 3.7× in peak memory, not in saved tensors. Naive softmax is 53–81 MB and sdpa 29 MB at T=512; RSS is noisy because the machine's load average was about 106.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/repro/v1_saved_shapes.py"
+    },
+    {
+     "id": "parity-claim",
+     "claim": "'The layer now runs at computational parity with standard matrix attention'",
+     "verdict": "fails",
+     "evidence": "Saved memory at T=512 (bench method): v2 133.66 MB vs naive softmax 37.62 MB (3.55×) and sdpa 6.41 MB. Peak RSS growth at T=512: v2 229–240 MB vs naive 53–81 MB; at T=1024, 843 vs 222 MB. CPU time could not be measured reliably (load average about 106): at T=512, v2 took 276–807 ms vs naive softmax 206–228 ms over 3 repeats, so the time result is unsettled.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/repro/peak_worker.py"
+    },
+    {
+     "id": "replacement-test2",
+     "claim": "Replacement Test 2: '42.234 MB ... Grid-free O(T^2) execution confirmed'",
+     "verdict": "partly",
+     "evidence": "The test counts the whole demo model (embedding, layer, lm_head, cross-entropy) at T=256, vocab 32, with no baseline and an unconditional status line. It runs with log_sigma0 still at -12 from Test 1, which does not change the byte count. Breakdown: authors' method 42.234 MB, of which the layer alone is 41.461; bench method 37.109 for the model and 36.461 for the layer. Saved memory is O(T²): 36.45 → 133.66 → 511.44 MB (×3.67, ×3.83). But v1's saved memory was also O(T²): 46.19 → 158.21 → 580.25. So this metric cannot show 'grid-free'.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/repro/memory_recount.py"
+    }
+   ]
+  },
+  "refute": {
+   "checks": [
+    {
+     "id": "transcription-fidelity",
+     "stands": true,
+     "correction": "",
+     "evidence": "I rendered all 8 PDF pages (4 for Blueprint, 4 for Replacement) and read them against src/paper_v2_blueprint.py and src/paper_v2_replacement.py. Every value that affects behaviour matches: both 1e-9 terms, clamp min=0.0, log(ones*2.0), -15.0 / -12.0, (2,128,64), (4,512,128), (2,64), (4,256), vocab 32, seed 42, lr 0.003. I did not re-run the character-count diff. In the Replacement PDF the third banner print( sits at column 0. It is a wrapped line (a blank line precedes it). Copied literally, it would end the if-block and cause an IndentationError. The transcription indents it."
+    },
+    {
+     "id": "same-layer",
+     "stands": true,
+     "correction": "",
+     "evidence": "same.py compares the two classes after removing docstrings. Only one statement differs: `return self.out_proj(out.transpose(1,2).contiguous().view(B,T,C))` is split into two statements. With shared weights and log_sigma0 ~ U(-3,3), over 3 seeds at T=96, the outputs, x.grad and all parameter grads differ by exactly 0. Parameter count is 99,076."
+    },
+    {
+     "id": "scripts-run-as-published",
+     "stands": true,
+     "correction": "",
+     "evidence": "I ran each script twice on CPU. Blueprint prints 'Test 1 ... PASSED (0 NaNs found)' and '149.66 MB' both times. Replacement prints 'Test Passed. Absolute stability achieved on CPU', '42.234 MB' and 'Grid-free O(T^2) execution confirmed' both times. In the code, the last status line is an unconditional print, and optimizer.step() is never called."
+    },
+    {
+     "id": "test1-no-subnormals",
+     "stands": false,
+     "correction": "Refuted. Both tests do produce subnormal values. The previous check counted only 5 named tensors and their .grad (test1_seeds.py / sweep_sigma.py). It missed the squared terms Psi_re**2 and Psi_im**2, and all backward gradients along the sigma path. Corrected statement: log σ0 = -15 does not make any parameter subnormal (σ0 = 3.06e-7 is a normal float). The envelope, A, the row sums and A_normalized also stay normal. But the forward squared terms contain about 8 subnormals per run, and the backward gradient with respect to sigma_t_sq is roughly 20% subnormal. All of this passes without NaN. So the tests do exercise subnormal arithmetic, but only on a path where no singular operation follows. They never reach the actual v2 failure point: underflow of the sqrt argument, at log σ0 ≤ -23.75 for T=128.",
+     "evidence": "allops.py hooks every aten op output, forward and backward, via TorchDispatchMode (seed 0, B,T,C = 2,128,64). Subnormals per log σ0 (fwd / bwd): 0.69: 0/0; -6: 0/0; -8: 0/68; -10: 0/56,635; -12: 0/31,507; -15: 7/43,772; -18: 3,325/0. The first subnormals therefore appear at -8, not -18. t1_state.py, over 50 seeds at -15: Psi_re**2 has 201 subnormals and Psi_im**2 has 197; A, env and A_normalized have 0. t1_grads2.py, Blueprint recipe at -15, seed 0: DivBackward0 input slot 1 (gradient with respect to sigma_t_sq+1e-9) has 13,460 of 65,536 values subnormal, and the following AddBackward nodes have 13,460 each. The Replacement recipe exactly as published (seed 42, -12) has 3,632 of 16,384 subnormal, plus 636 in the exp-argument denominator gradient. Both runs end with 0 NaN. CPU keeps subnormals: 1e-40*1.0 = 9.99e-41."
+    },
+    {
+     "id": "test1-degenerate-state",
+     "stands": true,
+     "correction": "Caveat: 'forcing σ0 adds nothing' holds only for the pass/fail outcome. Forcing does push about 44k subnormal values through the backward pass, against 0 at the default σ0, but it adds no power to detect a failure.",
+     "evidence": "t1_state.py, 50 seeds at -15: the largest off-diagonal weight is 4.57e-18, the smallest row sum 0.0801, and 55 of 51,200 rows sum to less than 0.99. Envelope on the diagonal is 0.01368; envelope at dt=1 is 1.323e-13 and at dt=127 is 1.042e-15. misc.py, Replacement at -12: max|y - out_proj(V_own)| = 2.35e-6 against max|y| = 1.13. t1_grads.py at the default σ0: 0 of 20 seeds give NaN."
+    },
+    {
+     "id": "test1-vs-v1",
+     "stands": true,
+     "correction": "",
+     "evidence": "v1_recipe.py, v1 from wavellm_fixed with positions 0.1*index. At B,T,C = 2,128,64: 10 of 34 parameter tensors NaN and x.grad NaN in 5 of 5 seeds. At T=64 with C=64 or C=128: 0 of 34 in 5 of 5 seeds. The first T with NaN is 94 for seeds 0, 1 and 2. A one-layer v1 WaveLLM at B=2, T=64 gives 0 NaN in 3 of 3 seeds. In the narrow head (σ0 = 0.5) at T=128, of 8,256 causal pairs, 21 overlaps are subnormal and 62 are exactly 0. These overlaps do not depend on any parameter."
+    },
+    {
+     "id": "v2-nan-boundaries",
+     "stands": false,
+     "correction": "The mechanism and the -23.75 boundary hold, but four details need correcting. (1) The upper boundary is log σ0 > 44.017, not ≥ 44.5. At that point 2.0*sigma0**2 overflows (ln sqrt(FLT_MAX/2) = 44.017), and σ0² itself overflows above 44.36. The previous sweep jumped from 44 to 44.5. (2) The lower boundary depends on T. The sqrt argument is about 2σ0⁴/dt² and becomes 0 once σ0 < (0.35e-45·(T-1)²)^(1/4). That gives -23.75 at T=128, about -23.05 at T=512 and about -24.1 at T=64. (3) The forward subnormal counts are undercounts: counting all ops at -22 gives 289,335 forward and 64,544 backward. (4) At -25 the row sums are about 1e-4 (median 1.15e-4, max 1.7e-3), not 0. The output equals the bias up to 9.4e-4, against max|y| = 0.125. At -30 it equals the bias up to 5e-8. Also, in PyTorch the NaN arises in the sqrt backward as 0/0 (a div op), which is mathematically the same as inf·0.",
+     "evidence": "allops.py: at 44.01 everything is finite; at 44.02 the first non-finite value is in the forward mul of shape (1,4,1,1), and all 16,384 outputs and all 12 grads are non-finite. At 44.4 the first non-finite op is pow. misc.py over 5 seeds at T=128: -23.74 gives 0/5 NaN and -23.75 gives 5/5, and only log_sigma0 is NaN, never x.grad. At T=512: -23.1 gives NaN, -23.0 does not. At T=64: -24.1 gives NaN, -23.1 does not. The first non-finite op at -23.75 is a backward aten.div of shape (1,4,128,128)."
+    },
+    {
+     "id": "test2-mixed-counting",
+     "stands": false,
+     "correction": "The core finding holds: the letter sets 149.66 MB (no dedup) against 158 MB (with dedup). But the ratios against the baselines rely on bench.py's dedup key (data_ptr, dtype, shape), which counts naive softmax's single 16 MB softmax output twice: autograd saves it under two shapes, (4,4,512,512) and (16,512,512), and both point to the same storage. Deduplicating by storage, naive softmax saves 21.62 MB, not 37.62 MB. So v2 saves 6.18× naive softmax, not 3.55×. Against sdpa it is 18.0× (133.66/7.41), not 20.9×, because sdpa's saved views keep 7.41 MB alive. Born (54.41) and v1/v2 are unchanged.",
+     "evidence": "mem.py at B=4, D=128, H=4, T=512, figures in MB as authors' method / bench method / storage method: v1 180.23 / 158.21 / 158.21; v2 149.66 / 133.66 / 133.66; naive 37.75 / 37.62 / 21.62; born 54.53 / 54.41 / 54.41; sdpa 6.53 / 6.41 / 7.41. Backward adds 0 pack calls for every kind. v2 makes 45 pack calls on 36 storages. Its 16 MB of duplicates are x saved 5 times (4 MB) and three (1,4,512,512) tensors each saved twice (12 MB); see mem_detail.py. Reductions: 16.96% by authors' method, 15.52% by bench method. T=256: v2 36.45 vs v1 46.19; T=1024: v2 511.44 vs v1 580.25 (both reproduced)."
+    },
+    {
+     "id": "test2-grid-explanation",
+     "stands": false,
+     "correction": "The substance holds: v1's 158 MB of saved tensors contains no grid tensor, and the gain is in peak memory. The '~3.7×' figure is imprecise, though. A load-independent measure (heap bytes in use after every op) gives 4.2× at T=512 (v1 928 vs v2 222 MB) and 4.5× at T=1024 (3,589 vs 790 MB). RSS growth in fresh processes gave 3.4× and 4.1× in my runs. RSS is unreliable here: only about 57 MB of pages were free. The reviewer's own README (line 76) already states that the B×T×T×64 tensors are not saved for backward, so the letter's '158 MB due to grid generation' contradicts the text it answers.",
+     "evidence": "mem_detail.py, v1 at T=512, distinct saved tensors: 12 × complex64 (4,512,512) = 96 MB, 8 × f32 (4,512,512) = 32 MB, 60 × (4,512,32) = 15 MB. No saved tensor has any dimension equal to 64. peak3.py (malloc_zone_statistics size_in_use after each op): at T=512, sdpa 36.3, naive 77.5, born 142.3, v2 221.5 and v1 928.3 MB, with v1's peak at aten.sum, the grid sum. At T=1024: 47.4, 226.4, 485.4, 790.2 and 3,589.3 MB. ru_maxrss growth: v1 1,012 vs v2 298 MB at T=512, and 3,828 vs 940 MB at T=1024."
+    },
+    {
+     "id": "parity-claim",
+     "stands": false,
+     "correction": "The letter makes this claim under the heading 'Memory & Time Footprint (O(T²) Verification)'. In the asymptotic sense it is true against naive matrix attention: both are O(T²) memory and O(T²·d) time. Against sdpa it is not, because sdpa's saved memory grows linearly (3.33 → 6.41 → 12.56 MB). In constant factors it fails. The time question is no longer unsettled: single-thread CPU time is load-robust. At T=512 v2 takes 2.25× the CPU time of naive softmax (74.6 vs 33.1 ms) and 2.32× at T=1024 (294 vs 127 ms). It does 2.16× the matmul FLOPs (5.23 vs 2.42 GFLOP fwd+bwd), writes 3.7× the T²-sized op outputs (248.5M vs 67.1M elements), saves 6.18× the memory by storage (133.66 vs 21.62 MB), and reaches 2.9× the peak heap (221.5 vs 77.5 MB). Against sdpa it takes 3.1× the time and 6.1× the peak heap. It is 16.5× faster than v1 (1,228 ms).",
+     "evidence": "cputime.py: torch.set_num_threads(1), time.process_time, median of 7 runs with tight spread (v2 69.7–79.4 ms, naive 32.7–34.2 ms). flops.py: FlopCounterMode, plus a dispatch-mode count of ops whose output has at least B·T·T elements (v2: 90 ops, naive: 16). Memory figures from mem.py and peak3.py."
+    },
+    {
+     "id": "replacement-test2",
+     "stands": true,
+     "correction": "Negligible: the layer-only figures are 41.453 MB (authors' method) and 36.453 MB (bench method), not 41.461 and 36.461. The 8 KB difference changes nothing.",
+     "evidence": "repl_t2.py runs the published flow (Test 1 first, log_sigma0 still -12, step() never called). Whole model: authors' method 42.234 MB, bench 37.109, storage 37.109, from 52 pack calls. Attention layer only: 41.453 / 36.453 / 36.453, from 45 pack calls. Saved memory is O(T²) for both versions: v2 36.45 → 133.66 → 511.44 MB, v1 46.19 → 158.21 → 580.25 MB (mem.py)."
+    }
+   ],
+   "missed": "1) The reviewer's own harness overcounts the naive-softmax baseline. bench.py deduplicates by (data_ptr, dtype, shape). Autograd saves the same softmax output twice, as (4,4,T,T) and (16,T,T), so bench.py counts it twice. Naive softmax's true saved memory is 6.88 / 21.62 / 75.5 MB at T = 256 / 512 / 1024. results/bench.json and README line 70 give 10.88 / 37.62 / 139.5 MB; at T=512 that overstates by 16 MB (74%). Every ratio against that baseline in the README and in the previous check needs to be redone. Born, v1 and v2 are unaffected. The storage method gives sdpa 1 MB more (7.41 vs 6.41 at T=512). Evidence: mem.py, mem_detail.py, mem.json.\n2) The CPU-time question can be settled despite load averages of 75–340. Single-thread process_time is stable: at T=512 sdpa 23.8 ms, naive 33.1 ms, v2 74.6 ms, v1 1,228 ms; at T=1024 sdpa 71.0 ms, naive 126.6 ms, v2 294.1 ms. Matmul FLOPs at T=512: v2 5.23 GFLOP vs naive 2.42 GFLOP.\n3) The previous subnormal analysis was incomplete. Its 'no subnormals' conclusion came from checking only five tensors. With every op counted, subnormals appear from log σ0 = -8 onward, in both authors' recipes, and the layer stays NaN-free. The criticism to keep is that the tests never reach the one singular point, underflow of the sqrt argument. That boundary depends on T (-23.05 at T=512) and sits well below the tested values (-12 and -15).\n4) Upper overflow boundary: log σ0 = 44.017, not 44.5.\nAll scripts and outputs are in /private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/repro-refute: allops.py, t1_state.py, t1_grads.py, t1_grads2.py, v1_recipe.py, mem.py, mem.json, mem_detail.py, peak3.py, flops.py, cputime.py, repl_t2.py, misc.py, same.py. Nothing was written to the repo: sources were copied and run with PYTHONDONTWRITEBYTECODE=1, CPU only."
+  }
+ },
+ {
+  "key": "math",
+  "found": {
+   "summary": "Формула огибающей в v2 не является перекрытием волновых пакетов ни в одном из трёх естественных случаев: (a) расплывшийся пакет против нерасплывшегося, (b) оба пакета расплылись, с учётом chirp, (c) формула самой статьи v1. При d=0 она равна √2, а нормированное перекрытие не бывает больше 1; тождественно E = √2·(σ0/σt)·(c)². Закон расплывания σ(t) верен. Но перекрытие двух пакетов, которые эволюционировали одинаковое время, по унитарности не зависит от t: это статическое гауссово ядро, а «дисперсия» в формуле v1 появилась только потому, что отброшена chirp-фаза. В терминах ML позиционная часть v2 — фиксированный монотонный prior по расстоянию с одним обучаемым σ0 на голову. Это в точности softmax от логитов 2·log|q·k*| плюс bias b(d): вблизи квадратичный, вдали логарифмический (вес ~1/d²). На ALiBi он не похож, при σ0≤2 близок к лог-ядру KERPLE. Фазового кодирования e^{iωs} из v1 в v2 нет совсем. Поведение голов расходится с Annex A: при малом σ0 голова почти целиком смотрит на свой токен и имеет длинный степенной хвост, при σ0=4–5 это окно в 2–3 токена, а широкое окно появляется только при σ0≳20, и тогда это обычное гауссово окно, на которое дисперсия не влияет.",
+   "findings": [
+    {
+     "id": "not-an-overlap",
+     "claim": "Письмо v2: «deriving the closed-form analytical coordinate-space integral of the wave-packet overlaps»; в коде E = sqrt(2σ0²/σt²)·exp(−dt²/(2σt²)), σt² = σ0² + (ħ·dt/(m·σ0))².",
+     "verdict": "fails",
+     "evidence": "Соглашения статьи (раздел 2.2 v1): ψ0 = (πσ0²)^(−1/4)·exp(−(x−a)²/2σ0²), ħ = m = 1, τ = t/σ0². Решение свободного уравнения Шрёдингера: ψ(x,t) = (πσ0²)^(−1/4)·(1+iτ)^(−1/2)·exp(−(x−a)²/(2σ0²(1+iτ))) = (πσt²)^(−1/4)·e^{−i·atanτ/2}·exp(−(1−iτ)(x−a)²/2σt²), где σt² = σ0²(1+τ²); второй множитель с (1−iτ) и есть chirp. Используется ∫exp(−α(x−a)²−β(x−b)²)dx = sqrt(π/(α+β))·exp(−αβd²/(α+β)).\n(a) Нерасплывшийся пакет в точке d против пакета, расплывшегося за t=d: α=1/2σ0², β=1/(2σ0²(1+iτ)), отсюда I_a = sqrt(2/(2+iτ))·exp(−d²/(2σ0²(2+iτ))) и |I_a| = (4/(4+τ²))^{1/4}·exp(−d²/(σ0²(4+τ²))).\n(b) Оба пакета расплылись за одно t, chirp учтён: α=(1+iτ)/2σt², β=(1−iτ)/2σt², отсюда перекрытие = exp(−d²/4σ0²).\n(c) Формула статьи — это (b) без chirp: exp(−d²/4σt²).\nКвадратура до 4·10^5 точек против этих формул по σ0∈{0.3,1,2,5,20} и d∈{0,…,1000} даёт максимальную ошибку 9.4e−16 для (a), 4.4e−16 для (b), 2.2e−16 для (c).\nКод не совпадает ни с одним случаем. При σ0=2: для d=5 |a|=0.299, b=0.210, c=0.543, код 0.261; для d=100 |a|=5.3e−3, b=4e−272, c=0.368, код 7.7e−3.\nE(0)=√2=1.414 при любом σ0, хотя любое нормированное перекрытие не больше 1 (Коши–Шварц; у вещественных гауссиан префактор sqrt(2σ1σ2/(σ1²+σ2²)) ≤ 1). E>1 при d≤1 (σ0=2), d≤4 (σ0=5), d≤16 (σ0=20).\nТождество с ошибкой ≤2.2e−16: E = √2·(σ0/σt)·[c]². Показатель экспоненты вдвое больше, чем в формуле статьи, и добавлен множитель σ0/σt. E/√2 совпадает с отношением плотностей N(d;0,σt²)/N(0;0,σ0²); в PDF строка подписана «continuous spatial envelope density». Это плотность, а не амплитуда перекрытия, и Born rule затем ещё раз возводит её в квадрат.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/math/m1_overlaps.py"
+    },
+    {
+     "id": "chirp-unitarity",
+     "claim": "v1, раздел 2.2: перекрытие exp(−(sQ−sK)²/4σ(t)²) расширяется с dt и снимает ограничение «static Gaussian kernels choke out long-range context».",
+     "verdict": "fails",
+     "evidence": "Если оба пакета эволюционируют одинаковое время t, перекрытие сохраняется по унитарности: <U(t)ψa|U(t)ψb> = <ψa|ψb> = exp(−d²/4σ0²). Это статическое гауссово ядро, и t в нём нет. Аналитически: в случае (b) αβ/(α+β) = (1+τ²)/(4σt²) = 1/(4σ0²), префактор равен 1. Квадратура совпадает с ошибкой 4.4e−16. Формула статьи получается только если выбросить chirp-фазу exp(iτ(x−a)²/2σt²) расплывшегося пакета. В случае (a) chirp учтён, и хвост при больших d равен |I_a| ≈ sqrt(2σ0²/d)·e^{−σ0²}, то есть убывает как d^(−1/2). В формуле (c) вместо этого полка e^{−σ0²/4}: например, 0.978 при σ0=0.3 на любом d.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/math/m1_overlaps.py"
+    },
+    {
+     "id": "dispersion-law",
+     "claim": "σ(t) = σ0·sqrt(1+(ħt/mσ0²)²) в v1 и sigma_t_sq = σ0² + (ħ·dt/(m·σ0))² в v2.",
+     "verdict": "holds",
+     "evidence": "Это одно и то же выражение, и оно верно для соглашения ψ∝exp(−x²/2σ²) из самой статьи. Проверка эволюционирующего пакета при σ0=2, t=7: норма 1.000000000000, <x²> = 8.12500000 = σt²/2, невязка i∂tψ + ½∂x²ψ равна 1.3e−9 при |ψ|≈0.37 (конечные разности). ħ и m — аргументы конструктора, а не параметры; обучается только σ0. Градиент по log_sigma0 при инициализации ≈ −2.6e−3, у всех 4 голов начальное σ0 = 2.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/math/m5_split.py"
+    },
+    {
+     "id": "envelope-shape",
+     "claim": "Какова огибающая v2 как функция расстояния: в v2 позиции — целые номера токенов, t = d.",
+     "verdict": "holds",
+     "evidence": "Точная форма (ошибка ≤2.2e−16): E(d) = √2·(1+u²)^(−1/2)·exp(−(σ0²/2)·u²/(1+u²)), где u = d/σ0². В общем виде u = ħd/(mσ0²), а полка равна exp(−(mσ0/ħ)²/2).\nE строго убывает: d lnE/du = −u/(1+u²) − σ0²u/(1+u²)² < 0, в mpmath max dE/dd < 0. Неубывающие шаги в float64 встречаются только среди субнормальных значений ~1e−322.\nМасштабов два. При d ≪ σ0² E — гауссиана exp(−d²(1+σ0²)/(2σ0⁴)). При d ≫ σ0² гауссов множитель выходит на полку e^{−σ0²/2}, и E ≈ √2·σ0²·e^{−σ0²/2}/d; отношение к этой асимптоте при d=1e7 равно 1.000000 для всех σ0.\nЗначения E (float32, строки исходника исполнены как есть) при d = 0, 1, 2, 5, 10, 50, 100, 1000:\nσ0=0.3: 1.414, 0.121, 0.0608, 0.0243, 0.0122, 2.43e−3, 1.22e−3, 1.22e−4;\nσ0=1: 1.414, 0.779, 0.424, 0.171, 0.0858, 0.0172, 8.58e−3, 8.58e−4;\nσ0=2: 1.414, 1.220, 0.848, 0.261, 0.0937, 0.0155, 7.67e−3, 7.66e−4;\nσ0=5: 1.414, 1.385, 1.302, 0.857, 0.234, 2.87e−5, 2.67e−6, 1.33e−7;\nσ0=20: 1.414, 1.412, 1.407, 1.371, 1.248, 0.0647, 1.07e−5, 0.\nВ float32 при σ0=20 E становится ровно 0 с d=417, а вес (1·E)² — с d=238.\nКоэффициент хвоста √2·σ0²·e^{−σ0²/2} максимален при σ0=√2 (1.04); при σ0=5 он равен 1.3e−4, при σ0=20 — 7.8e−85.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/math/m2_layer.py"
+    },
+    {
+     "id": "annexA-locality",
+     "claim": "Annex A v1: при малом σ0 ядро резко спадает (локальный синтаксис), при большом σ0 голова — глобальный фильтр по большим окнам.",
+     "verdict": "partly",
+     "evidence": "Распределение веса последнего запроса при одинаковом |q·k|, T=128, вес = E²:\nσ0=0.3: на себе 0.988, d≥32: 1.7e−4;\nσ0=0.5: на себе 0.928, d≥32: 1.1e−3;\nσ0=1: на себе 0.651, d≥32: 5.7e−3;\nσ0=1.41: d≥32: 6.6e−3;\nσ0=2 (init): на себе 0.41, d≤4: 0.953, d≥32: 2.9e−3;\nσ0=4: медиана d=2, d≥32: 1.0e−6;\nσ0=5: на себе 0.20, d≥32: 4.6e−8;\nσ0=20: медиана d=9, d≥32: 2.6e−2;\nσ0=50: d≥32: 0.37 (при равномерном весе было бы 0.75).\nЗависимость от σ0 немонотонна. «Узкая» голова почти целиком смотрит на свой токен, а её хвост по весу степенной, ~1/d². При σ0=4–4.5, то есть у «широкой глобальной» головы v1, это окно в 2–3 токена с хвостом 1e−6…1e−8. На дальних расстояниях пара v1 (σ0=0.5 и 4) упорядочена обратно Annex A: доля d≥32 равна 1.1e−3 против 1.0e−6.\nШирокое окно появляется только при σ0≳20, и это статическое гауссово окно exp(−d²/2σ0²): TV-расстояние строки до него 8e−4 при σ0=20 и 1e−4 при σ0=50, так что дисперсия на результат не влияет.\nУбывание у узкой головы на 92–99% даёт префактор −log(1+u²), то есть падение высоты расплывающегося пакета, а не гауссов множитель: при σ0=0.5, d=127 вклады −12.46 и −0.25 нат.\nДля сравнения, при тех же целых позициях: по формуле (c) статьи узкая голова получает почти равномерный вес (на себе 0.009, медиана d=63). Физически верное (b) даёт статическое окно шириной ~σ0 (при σ0=0.3 на себе 0.996). Это совпадает с описанием Annex A, но дисперсии в нём нет.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/math/m3_shape.py"
+    },
+    {
+     "id": "ml-equivalent",
+     "claim": "Что такое позиционная часть v2 в терминах ML; «Algebraic normalization … to bypass Softmax exponent logic».",
+     "verdict": "holds",
+     "evidence": "Весь слой с постоянным q·k даёт строки внимания E(d)²/ΣE² (max ошибка 3e−8 при σ0 = 0.3, 2, 5). Слой со случайными весами в float64 совпадает с softmax(log(Re²+Im²) + 2·log E(d)) с причинной маской: max|Δout| = 1.8e−8, остаток объясняют эпсилоны 1e−9.\nЗначит, позиционная часть — фиксированный по форме тёплицев multiplicative prior E(i−j)² с одним обучаемым скаляром σ0 на голову. Эквивалентно это аддитивный bias b(d) = −log(1+u²) − σ0²u²/(1+u²) к логитам 2·log|q·k*|. Нормировка A/ΣA — тот же softmax от log A, то есть экспонента никуда не делась, изменена только запись.\nВблизи bias квадратичный: b ≈ −d²(1/σ0²+1/σ0⁴), например при σ0=5, d=1: −0.0415 против −0.0416. Вдали логарифмический: b + 2·log d стремится к константе (−4.906 при σ0=0.3, −1.224 при σ0=2), то есть вес убывает как 1/d².\nALiBi (линейный bias) подходит плохо: лучшая прямая на d≤127 оставляет невязку 4.7–8.9 нат. Лог-ядро KERPLE −r1·log(1+r2·d) подходит при σ0≤2: невязка 0.04, 0.31 и 0.75 нат при σ0 = 0.3, 1, 2, r1 ≈ 2–2.8. При σ0≥5 оно не подходит (2.9 и 8.3 нат): там гауссово окно.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/math/m2_layer.py"
+    },
+    {
+     "id": "phase-rotation-gone",
+     "claim": "v1, раздел 2.1 и пункт 2 аннотации: позиция кодируется фазой e^{iωs}, «exact, continuous equivalent to RoPE» по разности позиций. Осталось ли это в v2?",
+     "verdict": "fails",
+     "evidence": "В v2 нет ω и позиции не входят в q и k: строки 'omega' нет ни в одном из двух файлов v2. raw = Σ q·conj(k) при q = QR+iQI — величина, зависящая только от содержания токенов. Комплексность даёт лишь A ∝ s_re² + s_im², сумму квадратов двух вещественных билинейных форм.\nБез огибающей и маски слой перестановочно эквивариантен: max|f(Px) − P·f(x)| = 3.6e−16 при σ0=e^20 против 1.02 при σ0=2.\nВ модели проверяющего (src/models.py, LM) позиционных эмбеддингов нет. Поэтому у cvqiaa2 вся информация о позиции — это E(d) и причинная маска, а cvqiaa2-noenv — это NoPE.\nПозиции в v2 — целые номера, в v1 — 0.1·номер, поэтому σ0 двух версий (2 против 0.5 и 4) напрямую не сравнимы.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/math/m2_layer.py"
+    },
+    {
+     "id": "v2-not-gridfree-v1",
+     "claim": "Письмо v2: дискретная сетка O(T²×N_grid) заменена на «native O(T²) calculation» того же интеграла.",
+     "verdict": "fails",
+     "evidence": "Код v1 с сеткой (wavellm_fixed.py, 64 точки на [−5,5]), пока пакет помещается в сетку, равен const·(c): отношение к exp(−d²/4σt²) равно √π·63/640 = 0.1745 с отклонением 9.4e−4 при σ0=0.5. При σ0=4 отклонение 1.4e−2 из-за обрезки сеткой.\nv2 считает другую функцию: E = √2·(σ0/σt)·(c)². При одинаковых σ0 и позициях поведение противоположное. Пример: σ0=0.5, T=128, по (c) медиана d=63 и доля на своём токене 0.009, в v2 медиана 0 и доля на своём токене 0.928.\nЗначит, v2 — новая позиционная функция, а не версия v1 без сетки. «Исправление обратной дисперсии» даёт именно новый множитель σ0/σt, а не то, что σ0 стал обучаемым.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/math/m3_shape.py"
+    },
+    {
+     "id": "eps-at-harness-sigma",
+     "claim": "Тесты авторов задают log_sigma0 = −12 и −15, «to confirm subnormal arithmetic is stable».",
+     "verdict": "partly",
+     "evidence": "При этих значениях σ0² = 3.8e−11 и 9.4e−14 меньше эпсилона 1e−9 внутри sqrt и exp, и формула меняется. E(0) = 0.270 и 0.0137 вместо 1.414. E(1) = 5.3e−11 и 1.3e−13, так что вес соседа относительно своего токена ~4e−20 и ~9e−23: слой смотрит только на свой токен. Тест проверяет вырожденный режим, в котором формулу искажают эпсилоны, а не рабочий режим слоя.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/math/m2_layer.py"
+    }
+   ]
+  },
+  "refute": {
+   "checks": [
+    {
+     "id": "not-an-overlap",
+     "stands": true,
+     "correction": "Вывод верен. Два уточнения, вердикт они не меняют. (1) Постоянный множитель √2 в E сокращается при нормировке A/ΣA: A_ij = |s_ij|²·E², поэтому E(0)>1 доказывает только неверное название формулы, на выходы слоя не влияет (кроме сравнения с eps 1e-9). Существенна только форма E(d). (2) Фраза «это плотность» неточна. E/√2 действительно равно N(d;0,σt²)/N(0;0,σ0²), но это не плотность того пакета, который код расплывает. При σ0=2, d=5: E/√2 = 0.185. В соглашении статьи |ψ(d,t)|²/|ψ(0,0)|² = 0.055. В соглашении ψ∝exp(−x²/4σ²) с собственным законом расплывания получается 0.090. Значит, формула гибридная: форма плотности из одного соглашения, закон расплывания из другого.",
+     "evidence": "r1_overlap.py: эволюция считается независимо от закрытых формул, точным FFT-пропагатором exp(−ik²t/2) на 2^18 точках. Максимальное расхождение с формулами (a) 2.9e−11, (b) 4.5e−12, (c) 1.2e−11, норма 1±1.2e−11. При σ0=2: d=5 даёт |a|=0.2994, b=0.2096, c=0.5435, код 0.2610; d=50 даёт 8.0e−3, ~0, 0.370, 1.55e−2. Тождество E=√2(σ0/σt)c² выполняется с относительной ошибкой ≤5.7e−14. E(0) в float64 с eps равно 1.41421355. Формулу SpatialOverlap=exp(−(sQ−sK)²/4σ(t)²) и вещественные ψQ, ψK ширины σ(t) я проверил по отрендеренной стр. 2 PDF v1 (v1_p2.png)."
+    },
+    {
+     "id": "chirp-unitarity",
+     "stands": true,
+     "correction": "",
+     "evidence": "FFT-эволюция обоих пакетов на t=d при σ0∈{0.3,1,2,5}, d≤50 даёт перекрытие exp(−d²/4σ0²) с ошибкой 4.5e−12, то есть t из ответа выпадает. Хвост (a) при σ0=0.3, d=50: FFT 0.05484 против sqrt(2σ0²/d)·e^{−σ0²} = 0.0548. Полка (c) при σ0=0.3: 0.97775 для d от 5 до 50. По стр. 2 v1 оба пакета имеют одно σ(t) и записаны без chirp."
+    },
+    {
+     "id": "dispersion-law",
+     "stands": true,
+     "correction": "Закон σ(t) верен. Число «градиент по log_sigma0 ≈ −2.6e−3» проверить нельзя: оно зависит от случайного входа и от функции потерь, которые не указаны, и о формуле ничего не говорит.",
+     "evidence": "r4_units.py, FFT при σ0=2, t=7: норма 1.000000000000, <x²> = 8.12500000 = σt²/2. Строки v1 и v2 алгебраически совпадают: σ0²(1+(t/σ0²)²) = σ0²+(t/σ0)²."
+    },
+    {
+     "id": "envelope-shape",
+     "stands": true,
+     "correction": "",
+     "evidence": "r2_shape.py, исходные строки исполнены в float32. Таблица совпала полностью, например σ0=5: 1.41, 1.39, 1.3, 0.857, 0.234, 2.87e−05, 2.67e−06, 1.33e−07. E>1 при d≤1, 4, 16 для σ0 = 2, 5, 20. При σ0=20 E==0 с d=417, E²==0 с d=238. Невозрастающих шагов в float64 при d≤1e5 нет ни для одного σ0. Коэффициент хвоста 1.041 (σ0=√2), 1.318e−4 (σ0=5), 7.83e−85 (σ0=20)."
+    },
+    {
+     "id": "annexA-locality",
+     "stands": false,
+     "correction": "Цифры по строкам верны. Но две фразы, «пара v1 (0.5 и 4) упорядочена обратно Annex A» и «σ0=4–4.5, широкая голова v1, это окно в 2–3 токена», подставляют σ0 из v1 в целочисленные позиции v2. Сам же агент в phase-rotation-gone пишет, что так сравнивать нельзя: в v1 позиции равны 0.1·k. Если считать формулу v2 в единицах v1, пара упорядочена так, как пишет Annex A: σ0=0.5 даёт на своём токене 0.254, медиану 2 токена, долю d≥32 0.030; σ0=4 даёт 0.027, медиану 19 токенов, долю d≥32 0.28. Верная формулировка: внутри v2 (целые позиции) доля d≥32 немонотонна по σ0. Локальный максимум 6.8e−3 при σ0≈1.29, минимум 2.6e−8 при σ0≈5.7, и снова выше 6.8e−3 доля поднимается только при σ0>16.4. Порядок Annex A соблюдается только на краях: при σ0→0 вес на своём токене →1, при σ0→∞ вес равномерный.",
+     "evidence": "r2_shape.py, T=128, вес E². На своём токене: 0.988 (σ0=0.3), 0.928 (0.5), 0.651 (1), 0.410 (2), 0.201 (5). Доля d≥32: 1.75e−4, 1.08e−3, 5.73e−3, 6.62e−3 (1.41), 2.94e−3, 1.02e−6 (4), 4.60e−8, 2.57e−2 (20), 0.369 (50). Медианы d: 2 при σ0=4, 9 при σ0=20. Перебор 2000 значений σ0 от 0.2 до 100 даёт минимум 2.58e−8 при σ0=5.71. Разложение логарифма веса при σ0=0.5, d=127: −12.461 и −0.250. TV-расстояние до exp(−d²/σ0²): 7.7e−4 (σ0=20) и 1.2e−4 (σ0=50). r4_units.py: формула v2 в позициях 0.1·k (результат выше)."
+    },
+    {
+     "id": "ml-equivalent",
+     "stands": false,
+     "correction": "Эквивалентность верна. Неточностей четыре. (1) «Экспонента никуда не делась, изменена только запись» — преувеличение: любая положительная нормировка w/Σw есть softmax(log w), так что такая перезапись тавтологична. Реальное изменение в том, что содержание входит как |s|², полиномиально, а не как e^s; это та же замена, что в варианте born. (2) «Вблизи bias квадратичный, b≈−d²(1/σ0²+1/σ0⁴)» верно только при d≪σ0². При σ0≤1 ни одно целое d≥1 в эту область не попадает: b(1) = −4.913 против −134.6 при σ0=0.3 и −1.193 против −2.000 при σ0=1. Приближение работает при σ0=2 (−0.296 против −0.3125) и σ0=5 (−0.0415 против −0.0416). (3) −1.224 при σ0=2 — значение при d=127, а предел 4·lnσ0−σ0² равен −1.2274. (4) Невязки подгонок зависят от критерия, который не указан. МНК с максимальной невязкой на d≤127 даёт для σ0 = 0.3/1/2/5/20: ALiBi 9.44/5.66/5.51/7.69/5.94 нат, лог-ядро KERPLE 0.09/0.47/1.13/2.67/6.64. Картина та же, но числа 0.04/0.31/0.75 этим способом не воспроизводятся.",
+     "evidence": "r3_layer.py, float64, случайные веса, σ0 = 0.3/1/2/5: max|layer − softmax(log|s|² + 2logE, причинная маска)| = 4.7e−8 при масштабе выхода 1.07. Значения b(1) и b(127)+2ln127 напечатаны там же."
+    },
+    {
+     "id": "phase-rotation-gone",
+     "stands": true,
+     "correction": "",
+     "evidence": "Строки 'omega' нет в paper_v2_replacement.py и paper_v2_blueprint.py (проверка дала False, False). При causal_mask=False и log σ0=20 max|f(Px)−P·f(x)| = 1.0e−15, при σ0=2 — 0.61. В models.py у LM нет позиционных эмбеддингов; RoPE есть только внутри StandardAttention (варианты softmax и born), у Analytical (cvqiaa2) позиционного кодирования нет."
+    },
+    {
+     "id": "v2-not-gridfree-v1",
+     "stands": false,
+     "correction": "Главный вывод верен: v2 — новая функция, а не v1 без сетки. Разложение подтверждает, что инверсию снимает множитель σ0/σt. При σ0=0.5 доля на своём токене: 0.0088 по формуле c², 0.0100 при одном удвоенном показателе, 0.920 при одном множителе σ0/σt, 0.928 у v2. Неточно утверждение «код v1 с сеткой равен const·(c), отклонение 9.4e−4 / 1.4e−2». В реальной конфигурации v1 (T=128, позиции 0.1·k до 12.7, сетка [−5,5]) равенство const·(c) с отношением ровно 0.17448 = √π·63/640 выполняется только для пар, где оба пакета внутри сетки. При σ0=0.5 таких пар 158 из 8256 причинных, при σ0=4 — ни одной. По всем парам отношение лежит в 0.0000–0.1745 (σ0=0.5) и 0.0006–0.162 (σ0=4). Числа отклонений из находки при заявленной постановке не воспроизводятся.",
+     "evidence": "r3_layer.py, раздел 5 (FreeEvolutionQuantumAttentionHead из wavellm_fixed, grid_size=64, float64); r4_units.py (разложение)."
+    },
+    {
+     "id": "eps-at-harness-sigma",
+     "stands": true,
+     "correction": "Стоит дополнить: «субнормальная арифметика» в этом тесте вообще не возникает (см. evidence).",
+     "evidence": "r3_layer.py. При log σ0 = −12 и −15: σ0² = 3.775e−11 и 9.358e−14, E(0) = 0.2697 и 0.01368, E(1) = 5.34e−11 и 1.32e−13, отношение весов (E1/E0)² = 3.9e−20 и 9.4e−23. Конфигурация теста blueprint (log σ0=−15, B=2, T=128, seed 0): среди 66048 ненулевых A субнормальных 0, минимальное A = 3.1e−35 (>1.18e−38). На диагональ приходится ≥0.999999 массы каждой строки, то есть слой внимания работает как тождественное отображение."
+    }
+   ],
+   "missed": "1) Обученные σ0. В results/train-cvqiaa2-seed0.json и train-cvqiaa2-seed0-lr0.003.json все 32 головы (16 в каждом запуске) закончили обучение с σ0 от 1.78 до 3.73. При этих значениях и одинаковом |s|: на своём токене 0.26–0.44, доля d≤4 0.90–0.96, доля d≥32 от 3.4e−6 до 4.5e−3. Значит, все обученные головы — локальные окна в 2–5 токенов. Ни одна не дошла до σ0>16.4, где дальний вес снова растёт. При инициализации σ0=2 производная доли d≥32 по log σ0 равна −1.3e−2. Рост σ0 сначала снижает дальний вес примерно на 5 порядков, до 2.6e−8 при σ0≈5.7, так что «глобальный» режим отделён от начальной точки провалом в позиционном prior. Содержание |s|² может это компенсировать, но при σ0=5.7, d=32 нужен множитель по |s| порядка e^8 (скрипт r2_shape.py). 2) Множитель √2 и любой другой постоянный множитель в E сокращаются при нормировке: E(0)>1 — ошибка в названии формулы, а не в выходах слоя. 3) При causal_mask=False dt обрезается до 0, и каждый будущий ключ получает E=√2, как свой токен: для запроса 0 строка E по ключам 0..4 равна [1.414]×5. Без маски слой не различает позиции будущих токенов. В demo-скриптах и models.py маска включена по умолчанию, поэтому на опубликованные прогоны это не влияет. 4) Тест авторов «subnormal arithmetic is stable» субнормальных чисел не порождает (0 из 66048) и проверяет вырожденный режим, где слой внимания работает как тождественное отображение. NaN не может появиться по построению, потому что abs нет. Все скрипты и выводы лежат в /private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/math-refute/: r1_overlap.py, r2_shape.py, r3_layer.py, r4_units.py, их *.out и v1_p2.png."
+  }
+ },
+ {
+  "key": "memory",
+  "found": {
+   "summary": "Слой v2 действительно больше не строит тензоры B×T×T×N_grid. Пиковая память по сравнению с v1 падает в 4,6 раза, время на CPU в 13–15 раз, рост памяти — O(T²). Но заявление о «computational parity with standard matrix attention» не подтверждается ни против одного базового варианта. При T=2048 v2 сохраняет для backward в 80 раз больше памяти, чем SDPA (на пике в 60 раз больше), в 7,1 раза больше, чем простой softmax (на пике в 3,8 раза), и в 2,5 раза больше, чем born. По FLOPs выходит 2,3× (ядро attention 2,5×), по CPU-времени на одном потоке 2,3× от простого softmax и 4,7× от SDPA при T=1024. Тест 2 авторов сравнивает числа, посчитанные разными методами. Если считать одинаково, saved-for-backward у v2 меньше, чем у v1, всего на 10–17%, потому что сеточные тензоры v1 и раньше не сохранялись. Вывод о памяти зависит от реализации, а не от формулы: тот же слой, посчитанный блоками по запросам с checkpoint, сохраняет 14,4 МБ вместо 511 МБ при T=1024 (уровень SDPA). По вычислениям не меньше 2× остаётся при любой реализации. Оговорки: CPU сильно загружен (load average 95–361, swap занят на 22,1 из 22,5 ГБ), поэтому время по wall clock шумное, а надёжные числа — CPU-время процесса на одном потоке. v1 при T=2048 не запускался, его saved посчитан на устройстве meta. В репозитории я один раз по ошибке запустил `git status`; содержимое .git/index не изменилось (mtime 18:53).",
+   "findings": [
+    {
+     "id": "parity-memory",
+     "claim": "«The layer now runs at computational parity with standard matrix attention» — по памяти",
+     "verdict": "fails",
+     "severity": "critical",
+     "evidence": "Один слой: B=4, d_model=128, H=4, CPU. Saved-for-backward в МБ при T=1024 / 2048. Подсчёт по storage, каждое хранилище один раз: sdpa 14,6/28,9, naive softmax 75,5/280,8, born 206,6/804,9, v1 580,2/2216,3 (2048 на meta), v2 511,4/2000,5. Метод рецензента (data_ptr, dtype, shape): sdpa 12,6/24,9, naive 139,5/536,8, остальные совпадают. Отношение v2 к sdpa: 40,7×/80,4× по методу рецензента (35×/69× по storage). v2 к naive: 6,8×/7,1× по storage (3,7×/3,7× по методу рецензента). v2 к born: 2,48×/2,49×. Пик живой памяти за forward+backward (torch.profiler, profile_memory) при T=1024/2048: sdpa 28,4/50,7, naive 201/789, born 460/1825, v2 765/3020, v1 3564/не запускался. v2/sdpa = 27×/60×, v2/naive = 3,8×, v2/born = 1,66×. Паритета нет ни с SDPA, ни с явной матрицей T×T.",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory/saved_mem.py"
+    },
+    {
+     "id": "parity-compute",
+     "claim": "«Computational parity with standard matrix attention» — по FLOPs и времени",
+     "verdict": "fails",
+     "severity": "major",
+     "evidence": "FlopCounterMode при T=1024, forward: sdpa/naive/born 2,684 GFLOP, v2 6,174 GFLOP (2,30×); forward+backward 8,05 против 18,52 GFLOP. Проходы элементных операций по матрице размера B·H·T·T (в единицах одного такого тензора): v2 20,75 в forward + 34 в backward, naive 7+7, born 7,1+15, SDPA не материализует матрицу. CPU-время процесса на одном потоке, медиана [q1–q3], 6 повторов, варианты чередуются. T=1024: sdpa 77,8 [75–85], naive 159 [140–164], born 124 [114–131], v2 365 [334–391] мс, то есть v2/sdpa 4,7×, v2/naive 2,3×, v2/born 2,9×. T=512: 27,1 / 38,4 / 32,0 / 84,1 мс, v1 1265 мс; v2 к ним 3,1× / 2,2× / 2,6×. T=256: 10,6 / 12,3 / 10,4 / 24,6 мс, v1 324 мс. Wall clock на 6 потоках при load average 95–361 (zoom, vitest, задачи других агентов): T=2048 sdpa 407, naive 1132, born 1570, v2 4673 мс, межквартильный размах до 2×. Направление то же, величина ненадёжна.",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory/timing1t.py"
+    },
+    {
+     "id": "authors-test2-mixed-methods",
+     "claim": "Тест 2 в Blueprint: «Saved Autograd Tensors at Context 512: … (The old implementation required ~158 MB)»; Replacement: «✅ Grid-free O(T^2) execution confirmed»",
+     "verdict": "partly",
+     "severity": "major",
+     "evidence": "Скрипт авторов на CPU печатает 149,66 МБ. 158 МБ — число рецензента, посчитанное с дедупликацией. Методом самих авторов (без дедупликации) v1 при T=512 даёт 180,23 МБ. Если считать одинаково, сокращение 17% (149,66 против 180,23) или 15,5% (133,66 против 158,21); при T=2048 — 10% (2000,5 против 2216,3). Saved-for-backward почти не изменился, потому что сеточные тензоры v1 не сохранялись для backward. Выигрыш v2 — в пике: 903→196 МБ при T=512. Пик тест 2 не измеряет. В тестах нет сравнения со стандартным attention. Строка «O(T^2) confirmed» в Replacement печатается всегда: это не проверка, а print после одного замера (42,234 МБ при T=256 для всей демо-модели). Пакеты в backward у авторского счётчика равны 0, то есть их число — это forward без дедупликации.",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory/saved_mem.py"
+    },
+    {
+     "id": "bhtt-tensor-count",
+     "claim": "Задача 2: сколько тензоров B×H×T×T v2 создаёт в forward и сколько сохраняет для backward",
+     "verdict": "holds",
+     "severity": "major",
+     "evidence": "Подсчёт через TorchDispatchMode при T=24 (B=4, H=4, d_head=32). Forward выделяет 15 тензоров B×H×T×T float32: 4 bmm (QR·KRᵀ, QI·KIᵀ, QI·KRᵀ, QR·KIᵀ), add, div, sub, div, два mul на envelope, два pow, add, masked_fill, div (A_normalized). Сверх них: 11 тензоров 1×H×T×T (цепочка envelope), 5 тензоров 1×1×T×T, 2 тензора T×T (ones, tril) и bool-маска. Для backward сохраняются 6 B×H×T×T: raw_re, raw_im, Psi_re, Psi_im, A после masked_fill, A_normalized. Сверх них: 6 тензоров 1×H×T×T, 2 float 1×1×T×T и bool-маска. Итого 24·B·H + 24·H + 9 = 489 байт на T². Проверка: член с T² при T=2048 равен 1956,0 МиБ, измерено 2000,5; остаток 5,9 → 11,4 → 22,4 → 44,5 МБ удваивается вместе с T, то есть линейный. Для сравнения сохраняют: naive 1 тензор B×H×T×T и bool-маску (65 Б/T²), born 3 тензора и float-маску (196 Б/T²), SDPA 0, v1 528 Б/T². Backward v2 выделяет 20 тензоров B×H×T×T и 26 тензоров 1×H×T×T.",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory/graph_count.py"
+    },
+    {
+     "id": "grid-removed",
+     "claim": "«We have removed the massive B × T × T × N_grid tensor allocations»",
+     "verdict": "holds",
+     "severity": "info",
+     "evidence": "В forward v2 нет ни одной аллокации формы (B,T,T,64); в v1 их 20. Самая большая аллокация в v2 — один тензор B·H·T·T: 16/64/256 МБ при T=512/1024/2048. У v1 — 256/1024 МБ при T=512/1024. Пик v1→v2: 232→52 (T=256), 903→196 (T=512), 3564→765 МБ (T=1024), то есть в 4,6 раза. CPU-время на одном потоке v1→v2: 324→24,6 и 1265→84,1 мс, в 13–15 раз.",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory/peak_mem.py"
+    },
+    {
+     "id": "o-t2",
+     "claim": "«Replaces the discrete O(T² × N_grid) coordinate grid with a native O(T²) calculation»",
+     "verdict": "holds",
+     "severity": "info",
+     "evidence": "Рост saved-for-backward у v2 при каждом удвоении T: 3,67, 3,83, 3,91 (стремится к 4). Член с T² точно равен 489 Б/T². Это тот же класс, что у naive (3,15, 3,49, 3,72) и born. У SDPA рост 1,93, 1,97, 1,98: память O(T). Значит, O(T²) у v2 верно, но SDPA, базовый вариант для обучения, по памяти линеен.",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory/ratios.py"
+    },
+    {
+     "id": "flops-per-head",
+     "claim": "Задача 5: matmul и FLOPs на голову против стандартного attention",
+     "verdict": "holds",
+     "severity": "major",
+     "evidence": "Вывод. Стандартный attention на голову: QKᵀ даёт T²·d MAC, AV ещё T²·d, итого 2·T²·d. v2: четыре вещественных QKᵀ-подобных matmul по T²·d и AV T²·d, итого 5·T²·d, то есть 2,5×. Минимум при трюке Гаусса (3 вещественных умножения на комплексное) — 4·T²·d, то есть 2×. Проекции на токен: v2 6·d_model² (q_real, q_imag, k_real, k_imag, v, out) против 4·d_model², то есть 1,5×. FlopCounter подтверждает: bmm 16,11 против 6,44 GFLOP за forward+backward при T=1024 (2,5×), mm+addmm 2,42 против 1,61 (1,5×). Для sdpa FlopCounter считает полный T², экономию от causal не учитывает.",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory/flops.py"
+    },
+    {
+     "id": "kv-cache",
+     "claim": "Задача 5: размер KV-cache на токен и стоимость декодирования v2 против стандартного attention",
+     "verdict": "fails",
+     "severity": "major",
+     "evidence": "Вывод для d_model=128, fp32, на токен и слой. Стандартный attention кэширует K и V: 2·128·4 = 1024 байта. v2 кэширует KR, KI и V: 3·128·4 = 1536 байт, в 1,5 раза больше. v1 кэшировал 2048 байт. Envelope зависит только от целого расстояния и sigma0, кэшировать его не нужно, при декодировании это O(H·T) операций. Декодирование одного токена на слой: в attention 5·T·d_model MAC против 2·T·d_model (2,5×), в проекциях 6·d_model² против 4·d_model². В коде v2 нет ни generate, ни KV-cache, у WaveTransformerDemo нет пути декодирования, так что авторы этот режим не проверяли.",
+     "script": ""
+    },
+    {
+     "id": "params",
+     "claim": "Задача 5: число параметров attention на слой",
+     "verdict": "holds",
+     "severity": "minor",
+     "evidence": "Подсчёт sum(p.numel()). Стандартный attention из models.py (qkv без bias): 65 664. born: 65 664. v1: 45 312. v2: 99 076 (6 слоёв Linear 128×128 с bias и 4 значения log_sigma0). Это +50,9%, а против стандартного варианта с bias (66 048) — 1,50×. При одинаковом d_model v2 тяжелее стандартного attention в полтора раза.",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory/flops.py"
+    },
+    {
+     "id": "o-t-memory-reachable",
+     "claim": "Неизбежна ли O(T²)-память v2 (мера того, насколько паритет по памяти вообще достижим)",
+     "verdict": "partly",
+     "severity": "info",
+     "evidence": "Каждая строка выхода зависит только от своей строки оценок, нормировка идёт по строке и обходится без max. Поэтому слой можно считать блоками по запросам с checkpoint. Моя реализация с весами опубликованного слоя: при T=512 и блоке 64 разница выходов 0,0, относительная разница градиентов 8,8e-7, saved 7,4 МБ вместо 133,7. При T=1024 и блоке 128: разница 0,0, разница градиентов 1,3e-6, saved 14,4 МБ вместо 511,4 (у SDPA 14,6 по storage). Паритет по памяти достижим инженерно, через fused kernel или блоки, но авторы этого не сделали. Цена — пересчёт forward. Разрыв по FLOPs не меньше 2× сохраняется при любой реализации.",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory/chunked_v2.py"
+    },
+    {
+     "id": "fits-implications",
+     "claim": "Задача 3: следствия для того, что помещается в память",
+     "verdict": "holds",
+     "severity": "major",
+     "evidence": "Saved у v2 = 24·B·H·T² + 24·H·T² + 9·T² байт плюс члены O(T). Слой этого размера при T=2048: 2,0 ГБ saved и 3,0 ГБ пика; 4 таких слоя потребуют не меньше 8 ГБ только на attention, у SDPA около 0,1 ГБ. При T=8192 по формуле 489·8192² = 30,6 ГиБ saved на один слой: на GPU с 24 ГБ не помещается даже один слой. У naive 4,1 ГиБ, у SDPA около 0,1 ГБ. В обучении рецензента (ctx 128, batch 32, 4 слоя) v2 сохраняет около 52 МБ на слой, это помещается без труда. Значит, проблема памяти проявляется только на длинном контексте, а на тех масштабах, где авторы её проверяли, не видна. v1 при T=2048 не запускался: пик по масштабированию T² около 14 ГБ (3564 МБ × 4), а swap на машине занят на 22,1 из 22,5 ГБ.",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory/peak_mem.py"
+    },
+    {
+     "id": "reviewer-dedup-overcount",
+     "claim": "bench.py рецензента и таблица в README, раздел 4: колонка «простой softmax» и вывод «CV-QIAA держит примерно в 4 раза больше, чем простой softmax»",
+     "verdict": "partly",
+     "severity": "minor",
+     "evidence": "Ключ дедупликации (data_ptr, dtype, shape) считает выход softmax дважды: как (B,H,T,T) в SoftmaxBackward и как его view (B·H,T,T) в BmmBackward. Рецензент получает 139,5 МБ, уникальных байт по storage 75,5 МБ при T=1024; при T=2048 — 536,8 против 280,8. На born, v1 и v2 это не влияет (разница меньше 0,01 МБ). Для SDPA подсчёт по storage на 2 МБ больше, потому что v — view на живой буфер qkv. Настоящее отношение v1 к naive при T=1024 — 7,7×, а не около 4×: ошибка в пользу авторов. Устройство meta воспроизвело CPU-числа для naive, born, v1 и v2 при T≤1024 точно, а для SDPA нет: на meta он уходит в путь math. Поэтому SDPA при T=2048 измерен на CPU.",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory/saved_mem.py"
+    }
+   ]
+  },
+  "refute": {
+   "checks": [
+    {
+     "id": "parity-memory",
+     "stands": true,
+     "correction": "",
+     "evidence": "Мои скрипты, свой variant factory (слой v2 из paper_v2_blueprint.py), каталог /private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory-refute (saved2.py, peak2.py). Saved-for-backward (MiB), метод рецензента / уникальные storage: T=1024 sdpa 12.562/14.562, naive 139.5/75.5, born 206.562, v1 580.25/580.238, v2 511.438; T=2048 sdpa 24.875/28.875, naive 536.75/280.75, born 804.875, v1 2216.33 (meta), v2 2000.5. Meta совпал с CPU при T=512 до третьего знака. Независимая проверка без hooks: живая память аллокатора в конце forward (profiler, profile_memory) при T=1024: sdpa 14.3, naive 75.3, born 206.3, v2 511.1. Значит, настоящий удерживаемый объём даёт подсчёт по storage. Пик forward+backward при T=1024: sdpa 28.4, naive 201.3, born 460.4, v2 765.1; при T=512: 12.7/52.4/117.2/196.3, v1 903.0. Всё совпадает с числами проверяющего. Пик при T=2048 я не запускал: свободно 1–1.5 ГБ swap. Рост 765→3020 по T² согласован (×3.95). Вывод «паритета нет» верен в смысле постоянного множителя."
+    },
+    {
+     "id": "parity-compute",
+     "stands": true,
+     "correction": "",
+     "evidence": "FlopCounterMode (flops2.py), T=1024, forward: sdpa, naive и born по 2.6844 GF, v2 6.174 GF (2.30×). Forward+backward: naive/born 8.053, v2 18.522. Для sdpa счётчик даёт 9.127, так что 8.05 относится к naive и born, не к sdpa. Мой замер CPU-времени на одном потоке (time2.py, 5 повторов, варианты чередуются, load average 65–155), медиана [min–max] в мс. T=1024: sdpa 83.3 [70.5–88.5], naive 150.2 [140–163], born 131.3 [122–160], v2 384.2 [345–429]; v2/sdpa 4.6×, v2/naive 2.56×, v2/born 2.93×. T=512: 33.0 / 43.2 / 35.6 / 96.3, v1 1357; отношения 2.9× / 2.2× / 2.7×. Это в пределах шума от 4.7× / 2.3× / 2.9× у проверяющего. Отношение FLOPs зависит от T: при T=128 оно 0.1845/0.1007 = 1.83×, к большим T стремится к 2.5×."
+    },
+    {
+     "id": "authors-test2-mixed-methods",
+     "stands": true,
+     "correction": "",
+     "evidence": "Запустил оба авторских harness как есть (python -B). Blueprint печатает «Test 2 … 149.66 MB», Replacement — «42.234 MB» и безусловный print «✅ Grid-free O(T^2) execution confirmed». Авторским методом (без дедупликации, только forward) v1 при T=512 даёт 180.234, v2 149.656; в backward 0 пакетов (auth_bwd 0.0). Метод рецензента: v1 158.211, v2 133.656. Сокращение 17.0% и 15.5%; при T=2048 9.7% (2000.5 против 2216.33). Среди сохранённых тензоров v1 нет ни одного с осью grid: 12 complex64 (4,T,T), 8 float (4,T,T), 4 (1,T,T). Значит, подпись «~158 MB … due to grid generation» неверна."
+    },
+    {
+     "id": "bhtt-tensor-count",
+     "stands": false,
+     "correction": "Forward: 15 буферов размера B·H·T·T, saved 6, итого 489 Б/T². Это верно. Но backward выделяет 21 буфер размера B·H·T·T, а не 20: 20 штук формы (4,4,T,T) и 1 выход bmm формы (16,T,T). В forward проверяющий считал выходы bmm формы (16,T,T) как B×H×T×T (15 = 11 + 4), а в backward такой же выход не учёл. Его собственный graph_count.txt показывает «20 x (4,4,24,24)» и «1 x (16,24,24)».",
+     "evidence": "alloc_count.py (TorchDispatchMode, новые storage по классу размера, T=24). Forward: BHTT 15 (bmm×4, add, div, sub, div, mul×2, pow×2, add, masked_fill, div), HTT 11, float T×T 7, bool 1. Backward: BHTT 21 (bmm, neg, div, div, mul, div, add, masked_fill, pow, mul×8, pow, div, neg, div), HTT 26. Saved-hook по storage (saved2.py): 5×(4,4,T,T) + 1×(16,T,T), 6×(1,4,T,T), 2×(1,1,T,T) float, 1 bool. Остатки сверх 489·T²: 5.89 / 11.41 / 22.44 / 44.5 MiB при T=256/512/1024/2048, растут линейно."
+    },
+    {
+     "id": "grid-removed",
+     "stands": true,
+     "correction": "",
+     "evidence": "Подсчёт аллокаций на meta при T=24: в forward v1 20 тензоров формы (4,T,T,64), в v2 ни одного; самая большая аллокация v2 при больших T — один B·H·T·T. Пик v1→v2 (мой peak2.py): 231.8→51.6 (4.49×), 903.0→196.3 (4.60×). CPU-время на одном потоке при T=512: 1357→96.3 мс (14.1×). «В 4,6 раза» верно с округлением; при T=256 выходит 4.5×."
+    },
+    {
+     "id": "o-t2",
+     "stands": true,
+     "correction": "",
+     "evidence": "Отношения saved при удвоении T (мои числа): v2 3.667 / 3.827 / 3.912; naive по storage 3.145 / 3.49 / 3.72; sdpa по storage 1.93 / 1.966 / 1.983. Член с T² у v2 ровно 489 Б/T² (4.352 при T=64 — переходная область)."
+    },
+    {
+     "id": "flops-per-head",
+     "stands": true,
+     "correction": "",
+     "evidence": "Вывод заново. Q·K^H = (QR+iQI)(KR−iKI)ᵀ: Re = QR·KRᵀ + QI·KIᵀ, Im = QI·KRᵀ − QR·KIᵀ, то есть 4 вещественных matmul по T²d, плюс AV T²d, всего 5T²d против 2T²d (2.5×). С трюком Гаусса 3 matmul, ядро 4T²d (2×). FlopCounter за forward: bmm v2 5.3687 против 2.1475 (2.5×), addmm 0.8053 против mm+addmm 0.5369 (1.5×); за forward+backward ×3: 16.11/6.44 и 2.42/1.61. Для sdpa счётчик даёт полные 2.1475, как у naive, то есть экономию от causal не учитывает."
+    },
+    {
+     "id": "kv-cache",
+     "stands": true,
+     "correction": "",
+     "evidence": "kvcache.py: инкрементальное декодирование v2 с кэшем (KR, KI, V) против полного forward на 40 токенах дало max|diff| = 3.6e-7, значит слой кэшируется ровно этими тремя тензорами: 384 float на токен и слой против 256 у стандартного attention (1.5×). Envelope зависит только от t−j и σ0, кэшировать его не нужно. grep по generate|cache|past|kv в обоих файлах v2 ничего не нашёл."
+    },
+    {
+     "id": "params",
+     "stands": true,
+     "correction": "",
+     "evidence": "sum(numel): sdpa 65664, born 65664, v1 45312, v2 99076; стандартный вариант с bias у qkv — 66048. 99076/65664 = 1.509, 99076/66048 = 1.500."
+    },
+    {
+     "id": "o-t-memory-reachable",
+     "stands": false,
+     "correction": "Saved действительно падает до уровня SDPA (14.4 против 14.6 MiB при T=1024), но пиковая память блочной версии — 126.2 MiB: в 6 раз меньше опубликованной (765.1), однако в 4.4 раза больше пика SDPA (28.4). Паритет достигается по saved, а не по пику. Фраза «разрыв по FLOPs не меньше 2× при любой реализации» завышена. С трюком Гаусса ядро T² ровно в 2×, а полный слой вместе с проекциями (1.5×) даёт 1.90× при T=1024 и 1.67× при T=128; 2× достигается только при T→∞. К тому же 3 вещественных умножения на комплексное — минимум для билинейной схемы, а не доказанная нижняя граница для любой реализации.",
+     "evidence": "Своя независимая реализация (chunk2.py: блоки по запросам, causal-маска умножением, checkpoint без reentrant), T=1024, блок 128: max|dy| = 0.0, max относительная разница градиентов 1.26e-6. Saved по hook 14.4 MiB, живая память в конце forward по аллокатору 14.0 MiB. Значит, hook не пропускает входы checkpoint. Пик forward+backward 126.2 MiB; опубликованный слой 511.4 / 511.1 / 765.1. Арифметика FLOPs: (2·2.1475 + 1.5·0.5369)/2.6844 = 1.900; при T=128 (2·0.0336 + 1.5·0.0671)/0.1007 = 1.67."
+    },
+    {
+     "id": "fits-implications",
+     "stands": false,
+     "correction": "При форме обучения рецензента (B=32, T=128, d=128, H=4) v2 сохраняет 72.1 MiB на слой, а не «около 52 МБ». 52.05 МБ — это только член с T² (49.6 MiB), без линейных членов (~22 MiB). При той же форме sdpa сохраняет 14.3, naive 18.3, born 34.4 MiB: v2 в 5.0×, 3.9× и 2.1× больше. «4 слоя ≥ 8 ГБ» при T=2048 — это 4·2000.5 MiB = 7.8 GiB (8.4 ГБ в десятичных); в MiB-единицах самого проверяющего «не меньше 8» не выполняется. Остальное верно: 489·8192² = 30.56 GiB, у naive 4.06 GiB.",
+     "evidence": "Hook по уникальным storage на meta (sdpa на CPU), B=32, T=128: sdpa 14.34, naive 18.3, born 34.41, v2 72.08 MiB. Член с T²: 24·32·4·128² + 24·4·128² + 9·128² = 52 051 968 Б = 49.64 MiB. В train.py по умолчанию batch=32, ctx=128."
+    },
+    {
+     "id": "reviewer-dedup-overcount",
+     "stands": true,
+     "correction": "",
+     "evidence": "Naive при T=1024: метод рецензента 139.5, уникальные storage 75.5, живая память аллокатора в конце forward 75.3. Разница 64 MiB = ровно один тензор 4·4·1024²·4 Б; при T=512 разница 16 MiB, тоже один тензор. Для born, v1 и v2 оба метода расходятся меньше чем на 0.01 MiB. v1/naive при T=1024 по storage = 580.24/75.5 = 7.69×. В README (строки 11 и 75) написано «примерно в 4 раза»: это 580.25/139.5 = 4.16 по методу с двойным счётом."
+    }
+   ],
+   "missed": "1) В summary проверяющего смешаны методы подсчёта, и выбран тот, что даёт большее отношение. «В 80 раз больше SDPA» посчитано методом рецензента (24.9 MiB у SDPA), «в 7,1 раза больше naive» — по storage. Метод рецензента недосчитывает SDPA: живая память аллокатора в конце forward 14.3 MiB при T=1024, то есть столько же, сколько по storage (14.56), а не 12.56. При одном, правильном методе v2/SDPA = 35× при T=1024 и 69× при T=2048, а не 41× и 80×. 2) Все отношения зависят от B и T, а проверены только при B=4 и T≥256. При форме, на которой рецензент реально обучал (B=32, T=128), v2/sdpa = 5.0×, v2/naive = 3.9×, v2/born = 2.1× по saved, а FLOPs в forward 1.83×. Асимптотика v2/naive на T² равна (24BH+24H+9)/(4BH+1): 7.5× при B=4, 6.2× при B=32, к 6× при больших B. 3) Смешение методов в авторском тесте 2 работает против самих авторов: 149.66 против 158 выглядит как сокращение на 5%, а при одинаковом подсчёте сокращение 15.5–17%. Это неверная подпись, а не завышение в пользу авторов. 4) Фраза письма стоит под заголовком «O(T²) Verification» и говорит о «standard matrix attention». Её можно читать как «тот же класс сложности, что у явной матрицы attention», и в этом смысле она верна: рост saved при удвоении T у v2 3.91, у naive 3.72, compute O(T²d) у обоих. Не выполняется она как утверждение о равной стоимости. SDPA в письме не упомянут. 5) SDPA измерен только на CPU, в flash-ядре. Обучение рецензента идёт на MPS; какой backend SDPA там используется и линейна ли его память, не проверено (MPS занят). 6) В README «в 46 раз больше, чем sdpa» тоже взято из метода с двойным счётом; по storage это 580.24/14.56 = 39.8×. Все мои скрипты и выводы лежат в /private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/memory-refute (saved_cpu.txt, saved_meta.txt, peak2.txt, flops2.txt, time2.txt, chunk2.txt, authors_blueprint.txt, authors_replacement.txt)."
+  }
+ },
+ {
+  "key": "numerics",
+  "found": {
+   "summary": "Сам слой v2 в float32 при σ0 около начального значения работает корректно. Causality соблюдается побитово, градиенты конечны и совпадают с конечными разностями, контекст 8192 проходит без NaN. Ломается он в трёх местах. В float16 начиная с dt≥256 envelope обнуляется, с dt≥362 forward даёт NaN. В bfloat16 позиции torch.arange(T, dtype=bf16) округляются, и только из-за этого выход отличается от float32 на 19% при T=512 и на 50% при T=2048. При малых σ0 (log σ0 ≤ −5) слой вырождается в attention только на собственный токен, а q, k и log_sigma0 перестают получать градиент. Тесты устойчивости самих авторов (log σ0 = −15 и −12) запускают слой именно в этом вырожденном режиме, поэтому их «PASS» проверяет тождественное отображение. Отдельно: Born-веса не видят знак и фазу score, так что запрос не может отличить ключ k от −k. Кроме того, при росте σ0 доступ к дальним токенам падает на 10+ порядков в диапазоне σ0≈5–15, прежде чем вырасти снова.",
+   "findings": [
+    {
+     "id": "causality-exact",
+     "claim": "Выходы на ранних позициях не зависят от будущих токенов (значения и градиенты)",
+     "verdict": "holds",
+     "evidence": "float64 и float32, log σ0 ∈ {ln2, −12, +5}, B=3, T=48. Для всех 47 точек разреза будущие x заменены на randn·100: max|Δy_past| = 0.000e+00, точек с небитовым совпадением 0. Градиент ранних выходов (t<20) по будущим входам: max = 0.000e+00, по прошлым 1.3–2.4. Моя переимплементация совпадает со слоем с diff 0.0.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t1_causality.py"
+    },
+    {
+     "id": "nan-future-leak",
+     "claim": "NaN или inf в будущем токене не влияет на прошлые позиции",
+     "verdict": "fails",
+     "evidence": "NaN или inf во входе на t=10 (T=16) даёт NaN во всех 16 строках, включая t<10: в A@V получается 0·NaN. Стандартный F.scaled_dot_product_attention(is_causal=True) с NaN в value на t=10 тоже даёт NaN во всех 16 строках, так что дефект общий, а не особенность v2.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t1_causality.py"
+    },
+    {
+     "id": "zero-rows",
+     "claim": "Позиция 0 и строки, где все scores равны нулю",
+     "verdict": "partly",
+     "evidence": "Обычная позиция 0: вес 1 на себя, всё корректно. Если у запроса q=0 (bias q/k обнулены, x_t=0 при t=0 и t=3), сумма весов строк в head0 = [0.0, 1.0, 1.0, 0.0, 1.0, …]: выход на t=0 и t=3 побитово равен out_proj.bias, вклад attention молча обнуляется, градиент по x_0 имеет норму 0.0. Softmax в такой строке дал бы равномерное среднее.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t1_causality.py"
+    },
+    {
+     "id": "authors-tests-degenerate",
+     "claim": "Тест «CPU Gradient Stability … subnormal» (log σ0 = −15 в blueprint, −12 в replacement) подтверждает устойчивость слоя",
+     "verdict": "fails",
+     "evidence": "Оба скрипта авторов на CPU печатают PASSED. Но в условиях их тестов средний вес на собственный токен 0.999903 (−15) и 1.000000 (−12), максимальный вес на любой другой токен 4.3e-20 и 1.1e-17: слой ведёт себя как покомпонентное линейное отображение, attention нет. Градиент log_sigma0 там 1e-2…3e-2 и 1e-5…6e-5, а при σ0=2 на тех же данных 1.2–9.4. NaN не появляется потому, что в forward нет torch.abs(complex), а не потому, что проверен рабочий режим.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t7_authors_test.py"
+    },
+    {
+     "id": "small-sigma-collapse-trap",
+     "claim": "Градиент по log_sigma0 информативен и позволяет выучить σ0",
+     "verdict": "partly",
+     "evidence": "Autograd совпадает с центральной конечной разностью (float64) на 4–5 знаков при log σ0 от −15 до +10, при σ0=2 он равен −9.07 (для сравнения mean|grad q_real.w| = 2.17). Но при log σ0 ≤ −5 вес на себя = 1.0000 при любом масштабе входа (0.1, 1, 3). Градиент log σ0 падает до 3.2e-8 при −8 и 1.3e-5 при −5, градиенты q/k тоже (mean|grad q_real.w| 6.2e-6 при −8). Обучение только log σ0 к учителю (Adam lr 0.05, 300 шагов) восстанавливает целевые −1.20, +0.69 и +3.40 из стартов −5…+10. Из стартов −15 и −12 Adam уводит σ0 ещё ниже, к −18.3, −20.7 и −21.9 (loss 9e-4…2.5e-2): σ0 работает как множитель выхода через утечку eps. Из +20 значение не сдвигается вообще (градиент 1.07e-14, конечная разность 0). С SGD без нормировки Adam застряли бы и старты −5 и +10.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t5_sigma_grad.py"
+    },
+    {
+     "id": "eps-shrink",
+     "claim": "Нормировка A/(ΣA+1e-9) даёт веса с суммой 1",
+     "verdict": "partly",
+     "evidence": "env(0)² = 2σ0²/(σ0²+1e-9) пропорционально σ0², когда σ0 < 3e-5 (log < −10.4). Вход LayerNorm, масштаб 1, T=128: доля строк с суммой весов < 0.99 равна 0.0076 при −16, 0.39 при −18 и 1.0 при −20 (норма выхода attention 0.695 от точной нормировки). При масштабе 0.1: 0.99 при −15 и 0.46 при −14. Норма attention-части выхода (C=64, T=64): 29.6 при −15, 20.7 при −20, 2.6 при −22, 0 при ≤ −35. При σ0=2 сжатия нет при масштабах 0.003…1, если bias q/k ненулевые. С нулевыми bias A растёт как четвёртая степень масштаба входа: при масштабе 0.01 у 99.9% строк сумма < 0.99, при 0.003 у 100% сумма < 0.5.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t2_norm.py"
+    },
+    {
+     "id": "no-sigma-bound",
+     "claim": "У выученного σ0 есть ограничение",
+     "verdict": "fails",
+     "evidence": "log_sigma0 ничем не ограничен: ни clamp, ни параметризации. Единственное, что его тянет, это weight decay 0.01 в AdamW из train.py (к log σ0 = 0). В float32 forward даёт NaN при log σ0 ≥ 44.5 (σ0² = inf) и ≤ −104 (σ0 = 0). Градиент log_sigma0 становится NaN при log σ0 ≤ −26 (T=64), а attention-часть выхода молча обнуляется при ≤ −35. Скан −15…−45 и ±44…89.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t5c_lowscan.py"
+    },
+    {
+     "id": "long-range-valley",
+     "claim": "При росте σ0 envelope плавно расширяет доступ к дальним токенам",
+     "verdict": "fails",
+     "evidence": "Вывод: показатель dt²/(2σ0²+2dt²/σ0²) монотонно стремится к σ0²/2 при dt→∞, поэтому хвост ≈ √2·σ0²/dt·exp(−σ0²/2). Доля массы envelope² на dt>64 (T=1024, равномерное содержание): σ0=1: 3.5e-3; 2: 1.75e-3; 5: 1.3e-10; 8: 1.3e-15; 10: 2.0e-14; 20: 6.6e-6; 30: 2.4e-3; 100: 0.36; 1000: 0.91. При начальном σ0=2 средний вес на dt>64 равен 0.0022–0.0025 при T=1024, 4096 и 8192. Чтобы получить дальний контекст, голова должна пройти через провал в 10+ порядков при σ0≈5–15.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t5b_extremes.py"
+    },
+    {
+     "id": "longctx-fp32",
+     "claim": "float32 при T = 1024, 4096, 8192: нет NaN/inf, underflow безвреден",
+     "verdict": "holds",
+     "evidence": "B=1, d=16, 1 голова, σ0 ∈ {3e-7, 2, 20, 148}: forward и backward конечны при всех T, при T=8192 прогон 5–14 с, пиковый RSS 4.6 ГБ. Доля нулей в A (нижний треугольник): σ0=20 — 59/89/94%, σ0=148 — 0/40/67%. Это хвост гауссианы, а диагональ держит сумму строки ≥ 0.13. При σ0 ≤ 10 envelope не обнуляется ни при каком dt ≤ 8191, первый ноль: σ0=14.4 на dt=1748, σ0=20 на dt=417, σ0=148 на dt=2151. Сумма весов < 0.99 только при σ0=3e-7: 13 строк при T=8192 (min rowsum 2.4e-9).",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t3_longctx.py"
+    },
+    {
+     "id": "fp16-breaks",
+     "claim": "Слой работает после model.half()",
+     "verdict": "fails",
+     "evidence": "В float16 eps 1e-9 обращается в 0.0. dt**2 = inf при dt ≥ 256, поэтому envelope = 0 дальше 256, и дальние токены молча отрезаются. 2·σt² переполняется при dt ≥ 362 (σ0=2), получается inf/inf = NaN. T=128: ошибка 8.0e-4, NaN нет. T=512: 150 NaN-строк, первая 362, backward не конечен. T=2048: 1686 NaN-строк. При T=128 forward даёт NaN во всех строках для log σ0 ≤ −9 (σ0² уходит в 0, получается 0/0) и для ≥ 5.6 (σ0² переполняется). Backward не конечен уже при −8 и −5. Вариант cvqiaa2-noenv (log σ0 = 20) в fp16 имеет σ0 = inf, получается NaN.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t4_lowprec.py"
+    },
+    {
+     "id": "bf16-positions",
+     "claim": "pos = torch.arange(T, dtype=x.dtype) и dt точны в bfloat16",
+     "verdict": "fails",
+     "evidence": "bf16: при T=128 позиции точны. При T=512 различных позиций 385 из 512, max ошибка позиции 1, dt неверен в 43.8% пар i>j, 190 пар прошлых токенов с dt=0 (считаются текущим токеном). При T=2048: 641 из 2048, ошибка позиции до 4, dt до 9, неверен в 83.5% пар, 4657 пар с dt=0. NaN нет. Относительная ошибка выхода против fp32: 7.3e-3 (T=128), 0.19 (T=512), 0.50 (T=2048). fp32-слой, у которого только позиции округлены до bf16, даёт 0.191 и 0.497: вся ошибка из позиций. Исправление: считать pos и dt в float32 независимо от x.dtype.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t4b_bf16_attr.py"
+    },
+    {
+     "id": "autocast-bf16-ok",
+     "claim": "torch.autocast на CPU с bfloat16",
+     "verdict": "holds",
+     "evidence": "Модуль и вход в fp32, autocast cpu/bf16. T=128/512/2048: NaN нет, градиенты (включая log_sigma0) конечны, относительная ошибка 5.7e-3 / 5.9e-3 / 5.8e-3. Внутри LM из models.py под autocast вход слоя остаётся float32, поэтому позиции точны.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t4_lowprec.py"
+    },
+    {
+     "id": "sign-phase-blind",
+     "claim": "Born-вес |q·conj(k)|² может заменить softmax(q·k)",
+     "verdict": "partly",
+     "evidence": "Сконструированный пример, d_head=4, envelope плоский (log σ0=20): scores запроса = (+5, −5, 0, 0). Born даёт веса [0.5, 0.5, 0, 0], softmax — [0.987, 4.5e-5, 6.7e-3, 6.7e-3]. Значения ключей +1 и −1, поэтому выход слоя 0.0, у softmax 0.99. Веса не меняются при случайном повороте фазы каждого ключа и каждого запроса, включая k → −k (max|ΔW| = 1.7e-16). У softmax max|W(s) − W(−s)| = 0.87. Сдвиг score через bias ключа частично возвращает порядок (c=5: [0.8, 0, 0.2]), но снижает контраст (c=20: [0.5, 0.18, 0.32]).",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t6_sign.py"
+    },
+    {
+     "id": "noncausal-envelope",
+     "claim": "Опция causal_mask=False даёт осмысленный двунаправленный attention",
+     "verdict": "fails",
+     "evidence": "dt = clamp(i−j, min=0), поэтому все будущие токены получают dt=0 и полный envelope² = 2.0 независимо от расстояния. В строке 32 из 64 при σ0=2 на будущие токены приходится 92.7% массы envelope². В causal LM эта ветка не используется.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics/t8_noncausal.py"
+    }
+   ]
+  },
+  "refute": {
+   "checks": [
+    {
+     "id": "causality-exact",
+     "stands": true,
+     "correction": "",
+     "evidence": "s1_causal.py (свой прогон, seed 7, B=2, T=40, C=32, H=4; float32 и float64; log σ0 ∈ {ln2, −12, +5}): для всех 39 точек разреза будущие x заменены на randn·50, max|Δy_past| = 0.000e+00, разрезов с небитовым совпадением 0. Градиент выходов t<15 по входам t≥15: max = 0.000e+00, по прошлым 1.4–3.2."
+    },
+    {
+     "id": "nan-future-leak",
+     "stands": true,
+     "correction": "",
+     "evidence": "s1_causal.py: NaN и inf в x[t=10] (T=16) дают NaN во всех строках 0–15. F.scaled_dot_product_attention(is_causal=True) с NaN в v[t=10]: тоже строки 0–15. С NaN только в k[t=10] SDPA портит лишь строки 10–15, а у v2 masked_fill убирает NaN из A, так что утечка у обоих идёт только через V (0·NaN в A@V). Дефект общий, severity info верна."
+    },
+    {
+     "id": "zero-rows",
+     "stands": true,
+     "correction": "",
+     "evidence": "s1_causal.py: bias q/k обнулены, x_0 = x_3 = 0. Суммы весов head0 = [0.0, 1.0, 1.0, 0.0, 1.0, 1.0, 1.0, 1.0]; y[0] и y[3] побитово равны out_proj.bias; норма градиента по x_0 и по x_3 равна 0.0, по x_1 равна 3.40. Причина: d|s|²/ds = 2s = 0 при s=0, поэтому через k_0, v_0 градиента тоже нет. Ситуация искусственная (с ненулевыми bias q=0 бывает с вероятностью 0), так что severity minor верна."
+    },
+    {
+     "id": "authors-tests-degenerate",
+     "stands": false,
+     "correction": "По существу верно: в условиях тестов авторов attention работает только на собственный токен, и тест не различает режимы, потому что прошёл бы и при σ0=2. Но числа градиента log_sigma0 получены не в тестах авторов. Чекер брал суррогатный loss sum(out·R), а для replacement слой отдельно на randn с C=128, без WaveTransformerDemo и cross-entropy. На настоящем тесте replacement (seed 42, CE через demo) |grad log σ0| = 4.8e-10…7.3e-9 при −12 и 5.3e-4…4.1e-3 при σ0=2. В тесте blueprint (loss = out.sum(), randn, seed 0/1) при −15 получается 1.2e-3…3.6e-1, при σ0=2 3.4e-2…3.6. Значит, при −15 градиент не всегда мал: у одной головы 0.19 против 0.034 при σ0=2, он идёт через усиление выхода за счёт eps. Средний вес на себя при −15 зависит от seed: 0.99950–0.99979, минимум 0.56–0.88. Минимум ниже 1 из-за сжатия по eps, а не из-за внимания к другим токенам: max вес вне диагонали 7.4e-19. Плюс ещё один дефект теста (см. missed): субнормальных чисел в этих условиях нет вообще.",
+     "evidence": "s2_authors.py. Blueprint, log σ0=−15: mean self 0.999793 / 0.999504, max off-diag 7.46e-19 / 7.37e-19, grad log σ0 = [7.2e-3, 1.2e-3, 1.9e-1, 2.6e-2] и [2.9e-3, 3.6e-1, 4.7e-3, 1.1e-2]; при ln2 [2.2e-1, 2.1, 3.4e-2, 6.2e-1] и [3.6, 2.6, 2.2, 2.8e-1]. Replacement, log σ0=−12, seed 42: mean self 1.000000, max off-diag 1.06e-17 (совпадает с чекером), grad log σ0 = [5.4e-9, 7.3e-9, 4.8e-10, 2.5e-9]; при ln2 [2.5e-3, 4.1e-3, 5.3e-4, 5.7e-4]. NaN нет ни в одном случае."
+    },
+    {
+     "id": "small-sigma-collapse-trap",
+     "stands": false,
+     "correction": "Механизм подтверждается: при малых σ0 attention работает только на себя, градиенты q, k и log σ0 исчезают, Adam из −15 и −12 уходит ещё ниже, а SGD из −5 и +10 не двигается (чекер это не измерял, я измерил: подтвердилось). Неточности такие. (1) Вырождение начинается раньше −5: средний вес на себя ≥ 0.9999 уже при log σ0 = −3 (σ0 = 0.05), при −2 он 0.996. (2) Согласие autograd с конечной разностью при −8 только 3 знака (3.2192e-8 против 3.2152e-8), а не 4–5. (3) «Восстанавливает из стартов −5…+10» не везде: при цели −1.20 старт +10 закончился на −1.35 (loss 1.2e-4). (4) Severity major завышена для практики: во всех трёх обучениях cvqiaa2 на TinyStories выученные σ0 лежат в 1.78–4.95, до области вырождения (σ0 ≤ 0.05) далеко. AdamW с weight decay 0.01 тянет log σ0 к 0.",
+     "evidence": "s3_eps.py: средний вес на себя при log σ0 −8 и −5 = 1.00000 при масштабах 0.1, 1, 3; при −3 0.99991 / 0.99990 / 0.99989; при −2 0.9974 / 0.9964 / 0.9967. s4_trap.py (seed 3 и 11, цель ln2, обучается только log σ0): Adam lr 0.05 из −15 и −12 приходит к −20.68 (в обоих seed), из −5, 0, +1.2, +3, +10 приходит к +0.69. Loss по log σ0: 6.98e-2 при −12…−5, 3.40e-2 при −20, 5.07e-2 при −30, то есть локальный минимум около −20 за счёт усиления выхода через eps. s4b_sgd.py: SGD lr 3, 10, 30 из 0, 1.2, 3 приходит к +0.69, а −12 и −5 остаются −12.00 и −5.00, +10 остаётся +10.00; при lr 3–10 застревают и −3 и +5. results/train-cvqiaa2-*.json: σ0 1.78–4.95."
+    },
+    {
+     "id": "eps-shrink",
+     "stands": true,
+     "correction": "",
+     "evidence": "s3_eps.py (seed 1, C=64, B=8, T=128, вход LayerNorm). Масштаб 1: доля строк с суммой < 0.99 равна 0.0083 при −16, 0.395 при −18 и 1.0 при −20; отношение норм attention-выхода 0.693 при −20. У чекера 0.0076 / 0.39 / 1.0 / 0.695. Масштаб 0.1: 0.81 при −15 и 0.17 при −14 против 0.99 и 0.46 у чекера. Эти доли зависят от seed и размерности, качественно картина та же. С нулевыми bias при σ0=2: масштаб 0.01 даёт 99.8% строк < 0.99, 0.003 даёт 100% строк < 0.5. Медиана суммы A 1.8e-4, 1.5e-6, 1.8e-8, 1.5e-10 при масштабах 0.1, 0.03, 0.01, 0.003, то есть четвёртая степень масштаба. Порог σ0² = 1e-9 соответствует log σ0 = −10.36. Пропорциональность σ0² точна только при σ0 ≪ 3e-5."
+    },
+    {
+     "id": "no-sigma-bound",
+     "stands": true,
+     "correction": "",
+     "evidence": "s10_bound.py (seed 0, T=64): forward конечен при log σ0 = 44.0 и при −103, NaN при 44.5 и −104. Градиент log_sigma0 не конечен уже при −25 (у чекера −26; граница зависит от данных), градиент x конечен до −103. Attention-часть выхода побитово равна нулю уже при −34 (утверждение «≤ −35» верно, граница на 1 раньше). В train.py стоит torch.optim.AdamW(model.parameters(), lr) с weight_decay по умолчанию 0.01 и clip_grad_norm 1.0. Clamp или параметризации у σ0 нет."
+    },
+    {
+     "id": "long-range-valley",
+     "stands": false,
+     "correction": "Числа для dt>64 воспроизводятся точно, и монотонного расширения действительно нет. Но глубина и положение провала зависят от выбранного расстояния D. При D=16 провал всего около двух порядков: 7.6e-3 при σ0=2 и минимум 1.1e-4 при σ0=5. При D=256 он глубже 50 порядков и тянется по σ0 от 5 до 50 (4.3e-57 при σ0=15). Вывод: хвост env² на больших dt равен 2σ0⁴·e^{−σ0²}/dt² и максимален при σ0=√2 (1.083). Сердцевина — гауссиана ширины σ0 при dt ≪ σ0². Фраза «голова должна пройти через провал» — непроверенный вывод о динамике обучения. Content-множитель |q·k̄|² может усилить хвост 1/dt² при σ0 около 1.4–2. В реальных обучениях σ0 = 1.78–4.95: головы, выросшие до 3.7–4.95, стали более локальными, провал никто не пересёк.",
+     "evidence": "s5_valley.py (mpmath, 50 знаков, точная формула слоя с eps). Масса env² на dt>D, T=1024. D=64: σ0=2 1.8e-3, 5 1.3e-10, 8 1.3e-15, 10 2.0e-14, 20 6.6e-6, 30 2.4e-3, 100 0.36 (совпадает с чекером). D=16: 2 7.6e-3, 3 4.3e-4, 5 1.1e-4, 8 4.5e-3, 10 2.0e-2. D=256: 2 3.5e-4, 5 5.6e-12, 10 3.3e-39, 15 4.3e-57, 30 3.0e-31, 100 2.9e-4. env²(dt=1000)·1e6 совпадает с 2σ0⁴e^{−σ0²}: 0.7358 / 1.0827 / 0.5861 / 0.0200 при σ0 = 1 / 1.414 / 2 / 3."
+    },
+    {
+     "id": "longctx-fp32",
+     "stands": true,
+     "correction": "",
+     "evidence": "s6_long.py: forward и backward конечны при T=1024 и 4096 (σ0=2 и 20) и при T=8192 (σ0=2, 9.7 с, RSS 3.9 ГБ). Доля нулей в нижнем треугольнике A при σ0=20: 0.593 (T=1024) и 0.888 (T=4096), минимальная сумма строки W 1.0000. Первый ноль envelope в float32: σ0=14.4 на dt=1748, σ0=20 на dt=417, σ0=148.0 на dt=2145 (у чекера 2151 для e^5=148.41). Уточнение, на вывод не влияет: сам envelope при σ0 ≤ 10 не обнуляется, но A=(raw·env)² при |raw|=1 обнуляется уже при σ0=10 с dt=1351 и при σ0=12 с dt=230. Это безвредно."
+    },
+    {
+     "id": "fp16-breaks",
+     "stands": false,
+     "correction": "Поломка при model.half() подтверждается: dt² = inf с 256, NaN-строки с 362, 150 строк при T=512 и 1686 при T=2048, нижний порог log σ0 ≤ −9, backward не конечен при −8 и −5, noenv даёт NaN. Неверна верхняя граница: NaN во всех строках начинается с log σ0 ≥ 5.2 (σ0 ≥ 181, где переполняется 2·σ0²), а не с 5.6. При 5.5 σ0² = 59900 ещё конечно, но все 128 строк NaN. Кроме того, поломка относится только к модели, целиком переведённой в fp16. Под CPU autocast fp16 слой v2 работает: относительная ошибка 7.2e-4, backward конечен при T=2048. Softmax SDPA в чистом fp16 тоже работает при любом T.",
+     "evidence": "s7_lowprec.py и s7b_fp16hi.py (seed 0, C=64, H=4). fp16 dt² при 255 и 256 = [65024, inf]. .half(): T=128 — NaN 0, ошибка 8.0e-4; T=512 — 150 NaN-строк, первая 362, backward не конечен; T=2048 — 1686 строк, первая 362. log σ0 5.0 и 5.1: NaN 0, 2σ0² = 44032 и 53952; 5.2: 2σ0² = inf, NaN 128/128. −9: σ0² = 0, NaN 128; −8.5: σ0² = 5.96e-8, NaN 0, backward не конечен. Autocast fp16: T=128/512/2048 — ошибка 7.2e-4 / 7.3e-4 / 7.2e-4, backward конечен. SDPA fp16: ошибка 2.5e-4–3.0e-4, всё конечно."
+    },
+    {
+     "id": "bf16-positions",
+     "stands": true,
+     "correction": "",
+     "evidence": "s8_bf16.py. T=512: 385 различных позиций, max ошибка 1, dt неверен в 43.8% пар, max ошибка dt 2, 190 прошлых пар с dt=0. T=2048: 641 позиция, ошибка 4, 83.5% пар, max ошибка dt 9, 4657 пар. Вывод для 190: при округлении к чётному 256 и 257 дают 256, а тройки {4k−1, 4k, 4k+1} для 4k = 260…508 дают 63·3 + 1 = 190. Для 641: 257 + 3·128. Полный bf16: 0.194 при T=512 и 0.503 при T=2048. fp32-слой, где только arange заменён на bf16: 0.190 и 0.495. Для сравнения softmax SDPA в bf16: 2.0e-3–2.5e-3, то есть ошибка v2 в 100–250 раз больше."
+    },
+    {
+     "id": "autocast-bf16-ok",
+     "stands": true,
+     "correction": "",
+     "evidence": "s7_lowprec.py: CPU autocast bf16, модуль и вход в fp32. Относительная ошибка 5.9e-3 / 5.7e-3 / 5.8e-3 при T=128 / 512 / 2048, градиенты x и log_sigma0 конечны."
+    },
+    {
+     "id": "sign-phase-blind",
+     "stands": true,
+     "correction": "",
+     "evidence": "s9_sign.py, своя конструкция: bias ключей обнулён, x_1 = −x_0, слой с комплексными q и k и плоским envelope (log σ0 = 20). Вес строки 5 на ключ k и на −k одинаков: 0.016041514656095452 и 0.016041514656095452. Пример чекера с баллами (+5, −5, 0, 0): Born [0.5, 0.5, 0, 0], выход 0.0; softmax [9.87e-1, 4.48e-5, 6.65e-3, 6.65e-3], выход 0.990. Сдвиг c=5 даёт [0.8, 0, 0.2], c=20 даёт [0.5, 0.18, 0.32]. Инвариантность |q·k̄|² к общей фазе ключа выводится в одну строку. Оговорка: с ненулевым bias ключей вход x и −x дают разные ключи, так что слепота действует на уровне ключей, а не токенов."
+    },
+    {
+     "id": "noncausal-envelope",
+     "stands": true,
+     "correction": "",
+     "evidence": "s11_noncausal.py: при σ0=2, T=64 у строки 32 все будущие токены имеют env² = 1.99999988 (dt зажат в 0), их доля массы env² равна 0.9273; у строки 0 доля 0.984."
+    }
+   ],
+   "missed": "1) Тест авторов на «subnormal stability» вообще не создаёт субнормальных чисел. При log σ0 −15 (blueprint) и −12 (replacement) их число в env, Psi и A равно 0, минимальное ненулевое A 3.4e-35 и 3.9e-28. В fp32 у v2 субнормальные числа появляются только при σ0 ≈ 12–55: при T=512 58187 элементов A при log σ0 = 2.5, 29129 при 3.0, 9 при 4.0, и градиенты там конечны. Где backward v2 в fp32 действительно ломается (градиент log_sigma0 не конечен при log σ0 ≤ −25), авторы не проверяли. Скрипт s2_authors.py, s10_bound.py.\n2) У Born-нормировки нет temperature. Веса не меняются при масштабировании q, а также при общем масштабировании всех ключей. Умножение весов и bias q_real и q_imag на 0.1, 10 или 100 меняет W не больше чем на 6e-7, средняя энтропия строки остаётся 1.277. У softmax q×10 снижает энтропию с 3.154 до 1.323. Сделать attention резче за счёт нормы запроса слой не может, только за счёт направлений; контраст между двумя ключами равен квадрату отношения |q·k̄|, то есть растёт полиномиально, а не экспоненциально. Скрипт s9_sign.py.\n3) Контекст для низкой точности. fp16 ломается только при model.half(): CPU autocast fp16 работает (ошибка 7.2e-4, backward конечен при T=2048). Softmax SDPA в чистом fp16 и bf16 работает при всех T с ошибкой 2.5e-4–3.0e-4 и 2.0e-3–2.5e-3, так что ошибка v2 в чистом bf16 (0.19 и 0.50) — свойство именно v2. CUDA не проверялась. Скрипт s7_lowprec.py.\n4) Практическая значимость «ловушки» и «провала». В results/train-cvqiaa2-seed0.json, train-cvqiaa2-seed0-lr0.003.json и train-cvqiaa2-seed1-lr0.003.json выученные σ0 всех 16 голов лежат в 1.78–4.95. Ни одна голова не попала в область вырождения (σ0 ≤ 0.05) и не перешла провал (σ0 ≥ 15). Головы, выросшие до 3.7–4.95, стали более локальными: амплитуда дальнего хвоста 2σ0⁴e^{−σ0²} падает с 0.59 при σ0=2 до 2.8e-8 при 4.95.\nВсе скрипты лежат в /private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/numerics-refute/"
+  }
+ },
+ {
+  "key": "claims",
+  "found": {
+   "summary": "Версия 2 не исправляет прежний слой, а заменяет его другим, более простым. Из v1 пропали комплексный V, фазовый поворот e^{iωs}, чтение модуля |ΣAV| и фиксированные узкие и широкие головы. Остались нормировка квадратом (Born rule) по двум вещественным оценкам и множитель расстояния с обучаемой шириной. Его формула нигде не выведена: она не совпадает с формулой самой статьи из раздела 2.2 и при dt=0 даёт 1.414, то есть больше 1. Что v2 действительно исправляет: две опечатки (вместе с комплексными тензорами), NaN на CPU (в реальной модели 0 из 20 шагов), сетку и цикл по головам; σ0 стал обучаемым. Против v1 память меньше на 12–21%, время на CPU меньше примерно в 9 раз. Но память всё равно в 3.4–3.7 раза больше, чем у явного softmax, и в 11–41 раз больше, чем у sdpa, так что заявленный «паритет со стандартным attention» не подтверждается. В материалах v2 нет ни обучения (AdamW создаётся, но step() не вызывается), ни базовой модели для сравнения, ни контроля. Тест на NaN так же проходит и на старой форме с torch.abs, и субнормальных чисел в нём нет. Строка «O(T^2) confirmed» печатается без всякой проверки. Не затронуты: качество против softmax, 50% экономии памяти из Annex C, KV cache, фотонное O(1) и физическая причинность. PDF статей v1 побайтно те же (SHA-256), значит опубликованные ложные утверждения остаются в силе. Оба документа v2 — неотредактированный вывод чата Gemini.",
+   "findings": [
+    {
+     "id": "arch-different",
+     "claim": "Письмо и комментарии в коде представляют v2 как исправление того же слоя («Patch», «Fixes old .mtheH bug», «Corrected Dispersion Dynamics»).",
+     "verdict": "fails",
+     "evidence": "Сверка кода v2 со статьями v1 (разделы 2.1–2.3, Annex A–C, код в обеих статьях). ОСТАЛОСЬ: Q и K как пары вещественных проекций. raw_re и raw_im в точности равны Re и Im от QK† (allclose=True). Поэтому |Ψ|² = env²·(s1²+s2²), где s1=[QR,QI]·[KR,KI] и s2=[QR,QI]·[−KI,KR] — две вещественные билинейные оценки. Формула σt² = σ0² + (ħdt/mσ0)². Нормировка строки |Ψ|²/(Σ+1e-9). Явная маска tril. ИСЧЕЗЛО: фазовый поворот e^{iωs} и обучаемый ω (раздел 2.1, «точный аналог RoPE»): grep по omega, cos, sin, torch.complex, abs( ничего не находит. Комплексный V. Чтение модуля |ΣA V| (раздел 2.3). Формула перекрытия из раздела 2.2. Фиксированные головы σ0 = 4.0/0.5 (Wave-Transformer) и 4.5/0.6 (основная статья). Входные позиции 0.1×номер. Срез входа по головам. НОВОЕ: обучаемый log σ0, у всех голов в начале 2.0. Множитель sqrt(2σ0²/σt²). Слагаемые eps внутри sqrt и exp. Bias в проекциях. Головы считаются одной матричной операцией. Параметры слоя: 45 312 (v1) → 99 076 (v2), у softmax 65 664. По сути это real Born attention с двумя оценками, умноженная на ядро расстояния; текст статьи v1 описывает другую архитектуру.",
+     "severity": "critical",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/mem_bench.py"
+    },
+    {
+     "id": "no-training-no-control",
+     "claim": "Скрипт замены: «CV-QIAA PATCH HARNESS: REPRODUCIBLE EVALUATION OVERHAUL»; WaveTransformerDemo «mimicking original evaluation architecture»; «✅ Grid-free O(T^2) execution confirmed».",
+     "verdict": "fails",
+     "evidence": "grep не находит ни одного вызова .step() ни в одном из скриптов v2: оптимизатор создаётся, но модель не обучается. Нет данных, кривой loss, базовой модели и контроля. Найденное в разделе 2 рецензии (демо ничего не проверяет) не исправлено: демо просто убрано. В демо один слой attention без residual, LayerNorm и FFN (grep пуст), а у WaveLLM v1 два блока pre-LN с FFN и residual. Строка «O(T^2) confirmed» печатается безусловно после одного размера, T=256 (вывод 42.234 MB), поэтому проверить по ней масштабирование нельзя. Оба скрипта запущены дважды: выводы совпадают.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/src/paper_v2_replacement.py"
+    },
+    {
+     "id": "closed-form-not-derived",
+     "claim": "Письмо: «deriving the closed-form analytical coordinate-space integral of the wave-packet overlaps»; docstring: «integrating wave-packet fields symbolically».",
+     "verdict": "fails",
+     "evidence": "Вывода нет ни в одном PDF. Закрытая форма уже была в разделе 2.2 v1: exp(−dt²/4σ(t)²). Она численно совпадает с интегралом нормированных пакетов самой статьи (σ0=2, dt=5: 0.54348 и 0.54348; σ0=4, dt=20: 0.087246 и 0.087246). Формула v2, sqrt(2σ0²/σt²)·exp(−dt²/2σt²), даёт другое: σ0=0.5, dt=1 — 0.305 против 0.943; σ0=4, dt=127 — 6.7e−5 против 0.0195. Не совпадает она и с точным перекрытием свободно расплывшегося пакета с исходным сдвинутым (0.548 и 1.4e−7 в тех же точках). При dt=0 v2 даёт 1.4142 > 1, а перекрытие нормированных состояний по неравенству Коши — Буняковского не больше 1.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/envelope.py"
+    },
+    {
+     "id": "parity-memory-time",
+     "claim": "Письмо: «The layer now runs at computational parity with standard matrix attention».",
+     "verdict": "fails",
+     "evidence": "Память, сохраняемая для backward, считается методом рецензента (B=4, d=128, 4 головы), T = 256/512/1024 МБ. v2: 36.45/133.66/511.44. Явный softmax: 10.88/37.62/139.5. sdpa: 3.33/6.41/12.56. v1: 46.19/158.21/580.25. Итого v2 занимает в 3.35–3.67 раза больше явного softmax и в 11–41 раз больше sdpa, а меньше v1 всего на 12–21%. Время на CPU (forward+backward, параллельно шло обучение на MPS, поэтому замеры шумные). Первый прогон: v2 27/97/283 мс, явный softmax 20/114/127, sdpa 10/28/44. Второй прогон, отношения: v2 к явному softmax 1.38/3.46/2.57, v2 к sdpa 2.40/3.06/5.60. Вывод на бумаге: в v2 на голову 4 матричных умножения для оценок и 1 для A·V, всего 5·T²·d_head операций против 2 у softmax (в 2.5 раза больше), а линейных слоёв d×d 6 против 4.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/mem_bench.py"
+    },
+    {
+     "id": "grid-removed",
+     "claim": "Письмо: «removed the massive B×T×T×N_grid tensor allocations», O(T²) вместо O(T²·N_grid). Это также ответ на раздел 7 рецензии (головы считаются циклом).",
+     "verdict": "holds",
+     "evidence": "В коде v2 нет ни x_grid, ни тензоров 4D×grid; самые большие тензоры имеют размер B×H×T×T. Головы считаются одной матричной операцией. На CPU v2 быстрее v1: 27.4 против 233.7 мс при T=256 (в 8.5 раза) и 97.2 против 935.5 мс при T=512 (в 9.6 раза). Однако в самих материалах v2 единственное подтверждение — одно число памяти для одного размера.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/mem_bench.py"
+    },
+    {
+     "id": "test2-158mb",
+     "claim": "Тест 2 в blueprint: «Track saved tensors exactly like cv-qiaa-eval hooks»; печатает 149.66 MB и «The old implementation required ~158 MB at this scale due to grid generation».",
+     "verdict": "fails",
+     "evidence": "Подсчёт в тесте другой, чем у рецензента: дубликаты не исключаются и backward входит в счёт. Этим же способом v1 даёт 180.23 MB, методом рецензента v2 даёт 133.66, а v1 — 158.21. Сравнение 149.66 против 158 смешивает два метода. При одинаковом методе экономия 16–17%, а в собственном выводе авторов — около 5%. Объяснение «due to grid generation» противоречит разделу 4 README (тензоры сетки для backward не сохраняются) и замеру: v2 без сетки всё равно сохраняет 133.66 MB. Обычного softmax (37.62 MB) в тесте нет.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/mem_bench.py"
+    },
+    {
+     "id": "test1-no-power",
+     "claim": "Тест 1: «Explicitly force parameters into subnormal bounds to trigger a crash if unstable» и «confirm subnormal arithmetic is stable»; выводы «✅ PASSED» и «Absolute stability achieved on CPU».",
+     "verdict": "fails",
+     "evidence": "Тот же тест на v2, где |Ψ|² снова считается старым способом, torch.abs(complex)**2, тоже проходит: NaN=False и в тесте blueprint (log σ0=−15), и в тесте замены (log σ0=−12). Значит, ошибку, ради которой он написан, тест обнаружить не может. Субнормальных чисел в envelope, env² и A ноль при обоих значениях. Envelope при dt=0 определяется eps 1e-9: 0.0137 и 0.270 вместо 1.414. Attention в этом режиме почти тождественный: доля веса на себя в среднем 0.9999 и 1.0000. «Absolute stability» тоже неверно: NaN в градиентах при log σ0 ≤ −25, NaN уже в forward при log σ0 ≥ 45; без NaN диапазон −20…44. При обучении из начального log 2 такие значения практически недостижимы.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/nan_checks.py"
+    },
+    {
+     "id": "cpu-nan-fixed",
+     "claim": "Письмо: «CPU NaNs Fixed ... P = Re² + Im²»; раздел 6 рецензии.",
+     "verdict": "holds",
+     "evidence": "Модель рецензента (4 слоя) с cvqiaa2, B=32, T=128, 20 шагов AdamW на CPU: 0 из 20 шагов с NaN или inf в градиентах. У v1 после первого же шага NaN в 139 из 172 тензоров (diagnose.json). Это та же правка, что рецензент проверил в diagnose.py, проверка 4. В материалах v2 доказательства нет: их тест неинформативен, см. test1-no-power.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/nan_checks.py"
+    },
+    {
+     "id": "typos",
+     "claim": "Письмо: «Syntax Errors Resolved ... eliminating the invalid .mtheH calls»; комментарий в демо: «Correct targets memory layout mismatch by substituting reshape».",
+     "verdict": "partly",
+     "evidence": "Оба скрипта v2 запускаются (2 прогона, вывод одинаковый). Ошибка .mtheH исчезла потому, что комплексных тензоров больше нет; это была AttributeError, а не синтаксическая ошибка. reshape стоит в демо, где targets — отдельный тензор, а не срез, поэтому правка не проверяется. В письме вторая опечатка не упомянута. PDF статей v1 с обеими ошибками в папке авторов не изменились (см. paper-unchanged).",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/src/paper_v2_blueprint.py"
+    },
+    {
+     "id": "sigma0-learned",
+     "claim": "Письмо: «σ0 now explicitly learned per-head ... without hardcoded boundary truncation bugs»; docstring: «Resolves inverted dispersion physics via per-head learnable log_sigma0».",
+     "verdict": "partly",
+     "evidence": "σ0 обучается: это Parameter, d/dlog σ0 = −6.46 при log σ0=0, за 20 шагов σ0 сдвигается с 2 до 1.94. Обрезка на краях пропала из-за удаления сетки, а не из-за обучаемого σ0. Сама по себе обучаемость σ0 формулу не меняет: профиль расстояний изменила новая формула envelope. При малом σ0 градиент почти исчезает: −4.7e−7 при log σ0=−10 и 8.9e−6 при −5. Голова, у которой σ0 сжался, остаётся с attention только на себя.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/nan_checks.py"
+    },
+    {
+     "id": "positional-profile",
+     "claim": "Annex A: узкая голова отвечает за локальный синтаксис, широкая — за тему. Письмо: «inverted wave-packet dynamics» исправлены.",
+     "verdict": "partly",
+     "evidence": "Запрос в позиции 127, семантические оценки равны, считается доля позиционного веса env² на 5 ближайших символах. По формуле v1: σ0=0.5 → 0.040 (при равномерном весе 0.039), σ0=4 → 0.682. По v2: σ0=0.5 → 0.990, σ0=4 → 0.885. Обратный порядок на коротких расстояниях исчез. Но любое σ0 ≤ 16 оставляет на 5 ближайших не меньше 33%. Доля на dt ≥ 64 меняется с σ0 немонотонно: 2.2e−3 при 1.41, 9.6e−4 при 2, 9.6e−8 при 4, 2.1e−15 при 8, 5.0e−8 при 16, 0.155 при 64 (при равномерном весе 0.5). Голове, чтобы стать широкой, нужно σ0 ≳ 64 ≈ T/2, а путь от начальных 2 лежит через σ0 4–16, где дальние токены подавлены ещё сильнее. В параллельных прогонах рецензента (results/train-cvqiaa2-seed0*.json) σ0 после обучения 1.78–3.73: на 5 ближайших 0.90–0.96, дальше 64 не больше 1.5e−3. Все головы локальные, ни одной широкой.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/envelope.py"
+    },
+    {
+     "id": "quality-vs-softmax",
+     "claim": "Последняя фраза blueprint предлагает обучение на TinyStories, «to confirm that our evaluation loss now beats standard Softmax attention»; раздел 3 рецензии.",
+     "verdict": "fails",
+     "evidence": "В v2 нет ни одного измерения качества. Есть только параллельные прогоны рецензента: они не входят в материалы v2, по одному seed, взяты из results/*.json. cvqiaa2 0.9465 против softmax 0.9175 при lr 3e-3; 0.9854 против 0.9723 при lr 1e-3. Разрыв сократился с 0.12 (v1) до 0.03, но v2 softmax не обгоняет. При этом у v2 950 544 параметра (в attention 396 304) против 816 896 (262 656). Обучение 239–267 с против 131 с на MPS.",
+     "severity": "major",
+     "script": ""
+    },
+    {
+     "id": "paper-unchanged",
+     "claim": "Пост автора: спасибо за «нескольких критических ошибок в коде и математике, а также ложных утверждений», «файлы с исправленным кодом лежат по этой же ссылке». Письмо признаёт верными замечания о памяти, скорости, обратной динамике и NaN на CPU.",
+     "verdict": "partly",
+     "evidence": "Добавлены только два PDF с кодом. PDF статей и README побайтно совпадают в снимках 10:20 и 18:49 и в репозитории: SHA-256 d0ca70cc… (Wave-Transformer), 4cf94ba8… (основная статья), 8153fdfd… (README). В них по-прежнему K.mtheH, targets.view, «stable 50% activation memory reduction» (Annex C), фотонное O(1), узкие и широкие головы из Annex A, физическая причинность из Annex B, «Born-Rule Cross Entropy» и демо как доказательство сходимости. Ни одно ложное утверждение не отозвано и не названо. Письмо умалчивает о главном выводе рецензии (качество хуже softmax), о демо, о 50%, о KV cache и фотонике.",
+     "severity": "major",
+     "script": ""
+    },
+    {
+     "id": "annex-c-50pct",
+     "claim": "Annex C: на GPU «stable 50% activation memory reduction» (раздел 4 рецензии).",
+     "verdict": "fails",
+     "evidence": "В v2 эта тема не затронута, утверждение осталось в статье. v2 сохраняет в 3.35–3.67 раза больше, чем явный softmax, и в 11–41 раз больше, чем sdpa (T=256–1024), см. parity-memory-time.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/mem_bench.py"
+    },
+    {
+     "id": "kv-cache",
+     "claim": "Таблица из поста: KV-cache «O(T·d) с экономией 50%» (раздел 7 рецензии).",
+     "verdict": "fails",
+     "evidence": "В v2 нет ни generate(), ни кэша (grep по generate и cache пуст). Подсчёт на бумаге при d_model=128, float32: кэш v2 на токен и слой — KR, KI и V, 3·128·4 = 1536 Б. У обычного attention K и V занимают 1024 Б, у v1 комплексные K и V — 2048 Б. Значит, v2 на 50% больше обычного attention, а не на 50% меньше.",
+     "severity": "minor",
+     "script": ""
+    },
+    {
+     "id": "causality",
+     "claim": "Annex B: причинность обеспечивается физически, через распространение волны.",
+     "verdict": "fails",
+     "evidence": "В v2 причинность по-прежнему держит только явная маска tril. Из-за clamp(dt, min=0) будущие ключи получают envelope при dt=0, то есть 1.4142 — наибольшее значение среди всех ключей (σ0 = 0.5, 2 и 4). До маски envelope отдаёт будущему максимальный вес.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/envelope.py"
+    },
+    {
+     "id": "photonic",
+     "claim": "Annex C и пост: фотонная реализация с O(1) по времени и памяти.",
+     "verdict": "unverifiable",
+     "evidence": "В v2 эта тема не затронута, ни чипа, ни моделирования. Более того, v2 убрал фазовый поворот и чтение модуля |·|, на которые опиралось фотонное объяснение (WDM, фотодетектор, Born rule).",
+     "severity": "info",
+     "script": ""
+    },
+    {
+     "id": "chatbot-output",
+     "claim": "Характер документов v2: не утверждение о методе, но важно для того, как их читать.",
+     "verdict": "holds",
+     "evidence": "Blueprint начинается словами «You can send them the following breakdown» — Gemini обращается к пользователю, а не к рецензенту. О рецензенте говорится в третьем лице («executed directly within their environment»). Под кодом стоит «Use code with caution.» — подпись интерфейса Gemini. Заканчивается вопросом «Would you like me to adapt this patch into a fully working script that replaces paper_wavellm.py ... or should we focus on running a local training test ... to confirm that our evaluation loss now beats standard Softmax attention?». Второй PDF, «The Fully Functional Reviewer Replacement Script», и есть первый вариант из этого вопроса; второй вариант, обучение, не выполнен, хотя результат предрешён в самой формулировке. Подписи нет. Эмодзи ✉️, 🛠, ✅, ❌. AttributeError названа синтаксической ошибкой, σ0 — дисперсией. Число 158 MB взято из таблицы рецензента и неверно объяснено. Оба слоя v2 функционально одинаковы: разница выходов 0.0.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims/src/paper_v2_blueprint.py"
+    }
+   ]
+  },
+  "refute": {
+   "checks": [
+    {
+     "id": "arch-different",
+     "stands": true,
+     "correction": "",
+     "evidence": "Прогнал заново (arch.py). raw_re и raw_im совпадают с Re и Im от QK† (allclose True). Параметры слоя: v1 45 312, v2 99 076, softmax 65 664. Модели целиком (LM): 950 544 / 396 304 у v2 против 816 896 / 262 656 у softmax. Сверил со страницами PDF основной статьи. Раздел 2.1: Q, K и V умножаются на e^{iωs}. Раздел 2.3: Out = W^O·|ΣA V|. В коде статьи σ0 = 4.5 и 0.6 (у Wave-Transformer 4.0 и 0.5), позиции 0.1×номер, вход режется по головам. В v2 ничего из этого нет. Мелкая неточность: grep по «abs(» и «complex» находит эти слова в комментариях v2 («torch.abs() CPU NaN crash»), но вызовов в коде нет."
+    },
+    {
+     "id": "no-training-no-control",
+     "stands": true,
+     "correction": "",
+     "evidence": "grep '\\.step\\(' не находит ничего в обоих скриптах v2 (exit 1). grep по LayerNorm, ffn, residual, generate и cache тоже пуст. По коду строка «✅ Grid-free O(T^2) execution confirmed» печатается без всякого условия после одного замера (42.234 MB при T=256). Демо — это Embedding, один слой attention и lm_head. У WaveLLM v1 два блока pre-LN с FFN и residual."
+    },
+    {
+     "id": "closed-form-not-derived",
+     "stands": true,
+     "correction": "",
+     "evidence": "Раздел 2.2 на странице 2 PDF: ψ_Q и ψ_K нормированы, перекрытие равно exp(−(s_Q−s_K)²/4σ(t)²). Мои числа (envelope.py, float64): при σ0=0.5, dt=1 v2 даёт 0.3049, v1 0.9429; при σ0=4, dt=127 — 6.72e−5 против 1.95e−2. Точное перекрытие свободно эволюционировавшего пакета с исходным сдвинутым я вывел аналитически: √2·(4+τ²)^(−1/4)·exp(−d²/(σ0²(4+τ²))), τ=t/σ0²; численное интегрирование совпадает. В тех же точках оно даёт 0.5475 и 1.446e−7. При dt=0 v2 даёт 1.4142. Оговорка: постоянный множитель √2 при нормировке строки сокращается, на attention влияет только форма кривой. Но и форма другая: v2/v2(0) при σ0=0.5, dt=1 равно 0.216, у v1 — 0.943. Вывод не меняется."
+    },
+    {
+     "id": "parity-memory-time",
+     "stands": true,
+     "correction": "",
+     "evidence": "Память методом рецензента воспроизведена до байта (mem.py). v2: 36.453 / 133.656 / 511.438 MB, явный softmax: 10.875 / 37.625 / 139.5, sdpa: 3.328 / 6.406 / 12.562. Отношение v2 к явному softmax 3.35 / 3.55 / 3.67, к sdpa 10.95 / 20.86 / 40.71, к v1 — экономия 21.1 / 15.5 / 11.9%. FLOPs при T=512 (FlopCounterMode): v2 1.745 GFLOP, явный softmax 0.805, то есть в 2.17 раза больше; вручную получается то же. Время на CPU, два моих прогона с чередованием вариантов, load average 200 и 92. v2 к явному softmax: 1.66 / 2.47 / 2.49 и 1.53 / 2.43 / 2.46. v2 к sdpa: 4.09 / 3.09 / 5.84 и 2.14 / 3.60 / 5.55. Оговорка о трактовке «parity»: в смысле порядка O(T²) паритет с явным softmax есть, отношение остаётся 3.4–3.7 при росте T в 4 раза. Вердикт «fails» относится к постоянным множителям. Против sdpa отношение растёт с T, там паритета нет даже по порядку."
+    },
+    {
+     "id": "grid-removed",
+     "stands": false,
+     "correction": "По существу вывод верен. Уточнить две вещи. (1) Ускорение против v1 на CPU зависит от нагрузки: в моих прогонах в 5.5 раза (load average ~200) и в 8.3–8.4 раза (~92), у проверяющего 8.5–9.6. Правильно писать «в 5.5–9.6 раза, на ненагруженной машине около 8–9». (2) В материалах v2 не одно число памяти, а два: 149.66 MB (слой, T=512, blueprint) и 42.234 MB (демо-модель, T=256, replacement). Настройки у них разные, поэтому масштабирование по ним всё равно не проверить.",
+     "evidence": "timing.log: при T=256 v2 124.1 мс, v1 684.5 мс; при T=512 285.7 и 1581.0 мс. timing2.log: 23.7 против 199.2 мс и 94.0 против 784.2 мс. По коду v2 самые большие тензоры имеют размер B×H×T×T, envelope — 1×H×T×T. x_grid нет."
+    },
+    {
+     "id": "test2-158mb",
+     "stands": false,
+     "correction": "Слова «backward входит в счёт» верны лишь формально: backward ничего не добавляет. Подсчёт без дедупликации даёт одно и то же с backward и без него: у v2 149.66 и 149.66, у v1 180.23 и 180.23. Вся разница 149.66 против 133.66 — это повторно сохранённые тензоры. Экономия при одинаковом методе 15.5% (метод рецензента: 133.66 против 158.21) и 17.0% (метод авторов: 149.66 против 180.23), а не «16–17%». Остальное верно: сравнение смешивает два метода; у авторов вышло 5.3%; объяснение «due to grid generation» неверно, потому что тензоры сетки v1 не требуют градиента и не сохраняются; softmax в тесте нет.",
+     "evidence": "mem.py, режимы A, F и R при T=512, B=4, d=128 (выход выше)."
+    },
+    {
+     "id": "test1-no-power",
+     "stands": false,
+     "correction": "Главный вывод подтверждён полностью: тест не может обнаружить ошибку, ради которой написан. Уточнить границы. NaN в градиентах есть уже при log σ0 = −24, а при −23.5 и выше его нет. NaN в forward появляется с log σ0 ≈ 44.1: 2σ0² выходит за предел float32, ln(1.7e38)/2 ≈ 44.0. Диапазон без NaN — −23.5…44.0, а не −20…44. Доля веса на себя зависит от seed: у меня 0.99979, а не 0.9999.",
+     "evidence": "nan.py, по 20 seed на каждый тест. И в тесте blueprint (log σ0=−15, B=2, T=128, C=64), и в тесте replacement (−12, демо) NaN 0 из 20 и с Re²+Im², и с torch.abs(complex)**2. Субнормальных чисел в env, env² и A: 0, 0 и 0. Наименьшее ненулевое A = 3.4e−35, это нормальное число. env(dt=0) = 0.0137 и 0.2697, env(dt=1) = 1.3e−13. thresh.py: при −23.5, −23 и −22.5 NaN 0 из 5, при 44.0 0 из 5, при 44.1 5 из 5."
+    },
+    {
+     "id": "cpu-nan-fixed",
+     "stands": true,
+     "correction": "",
+     "evidence": "Подтвердил на реальном тексте, чего проверяющий не делал (cpu_real.py). TinyStories, цель — следующий символ, каждый шаг новый батч, B=32, T=128, AdamW 3e-3, CPU. У v2 0 из 30 шагов с NaN или inf в градиентах, loss 4.60 → 2.06. У v1 на таком же реальном батче после первого backward 139 из 172 тензоров с NaN. Проверка D проверяющего (0 из 20) сделана на одном случайном батче с target = input (loss 0.021): в такой задаче attention не нужен, так что доказательство слабое. Вывод от этого не меняется."
+    },
+    {
+     "id": "typos",
+     "stands": true,
+     "correction": "",
+     "evidence": "По коду v2: комплексных тензоров нет, поэтому нет и .mH. В README рецензента это AttributeError, в письме — «Syntax Errors Resolved». В демо replacement targets = torch.randint(...), то есть непрерывный тензор, и замену view на reshape этот код не проверяет. В письме (пункт 3) упомянута только .mtheH."
+    },
+    {
+     "id": "sigma0-learned",
+     "stands": false,
+     "correction": "То, что σ0 обучается, лучше доказывают реальные прогоны. У рецензента σ0 из начальных 2.0 стали 1.78–3.73 (16 голов, results/train-cvqiaa2-seed0*.json). В моём прогоне на тексте за 30 шагов 2.0 → 1.86–1.92. Числа −6.46 и «2 → 1.94» получены на одном случайном батче с target = input. Утверждение «при малом σ0 градиент почти исчезает» верно только при log σ0 от −10 до −5. В собственной таблице проверяющего при −20 градиент 21.2, больше, чем 6.46 при 0, а при −15 он −7.2e−3; эти точки в находку не попали. У меня при −20 1.2e−2, при 0 −7.9e−3. Причина в eps 1e−9 в envelope при dt=0. На практике это не важно: при обучении σ0 так далеко не уходит. Утверждение, что обрезка на краях пропала из-за удаления сетки, а не из-за обучаемого σ0, верно.",
+     "evidence": "nan.py (столбец dL/dlog σ0), nan_checks.log проверяющего (раздел C), cpu_real.log, results/*.json."
+    },
+    {
+     "id": "positional-profile",
+     "stands": false,
+     "correction": "Числа для v1 (0.040 и 0.682) посчитаны в единицах v2, где dt — это номер позиции. В коде Wave-Transformer позиции равны 0.1×номер, и в этих единицах формула v1 даёт на 5 ближайших 0.042 при σ0=0.5 и 0.090 при σ0=4: широкая голова v1 почти не локальна (при равномерном весе 0.039). Вывод не меняется: в v1 порядок обратный, в v2 на коротких расстояниях он исчез. Все числа v2 воспроизведены точно: 0.990 и 0.885; при dt ≥ 64 — 2.19e−3 при σ0=1.41, 9.57e−4 при 2, 9.61e−8 при 4, 2.12e−15 при 8, 5.04e−8 при 16, 0.155 при 64. Минимум доли на 5 ближайших при σ0 ≤ 16 равен 0.332. По обученным σ0: на 5 ближайших 0.904–0.958, при dt ≥ 64 не больше 1.48e−3. Оговорка: это позиционный множитель при равных семантических оценках, а не измеренные карты attention. Чтобы при σ0=2 перевесить множитель на dt=64 (отношение env² 7.2e−5), |s| дальнего ключа должен быть примерно в 120 раз больше. Чекпойнтов для проверки нет. Значит, «ни одной широкой головы» доказано только для позиционного множителя.",
+     "evidence": "envelope.py: таблица v2, v1 в единицах dt=номер и v1 в единицах dt=0.1×номер; минимум по 400 значениям σ0."
+    },
+    {
+     "id": "quality-vs-softmax",
+     "stands": false,
+     "correction": "В письме нет утверждения, что v2 лучше softmax. Это предрешённый результат в вопросе Gemini. Точнее вердикт «не подтверждено». Числа верны: при lr 3e-3 0.9465 против 0.9175, при lr 1e-3 0.9854 против 0.9723 (у softmax среднее по 3 seed 0.974±0.003). Но у v2 по одному seed, а его разброс неизвестен: у v1 между двумя seed было 1.260 и 1.309. Поэтому разрыв 0.013 при lr 1e-3 не окончательный. Время softmax 131–143 с, а не 131 (при lr 3e-3 142.6 с). Пропущено: v2 заметно лучше real Born с RoPE (0.985 против 1.034±0.001 при lr 1e-3) и v1 (0.946 против 1.042 при lr 3e-3).",
+     "evidence": "results/train-*.json: final_val, seconds и params прочитаны напрямую; summary-v2.md."
+    },
+    {
+     "id": "paper-unchanged",
+     "stands": true,
+     "correction": "",
+     "evidence": "SHA-256 посчитаны заново. Wave-Transformer d0ca70cc…, основная статья 4cf94ba8…, README.txt 8153fdfd…, README.pdf 07ca21d6… — одинаковые в снимках 10:20 и 18:49 и в repo/paper. Zip из снимка 10:20 содержит 4 файла, zip из 18:49 — те же 4 плюс два PDF v2 (02:24 и 02:41, 5 ноября). Текст поста сверен по скриншоту 18.49.15. Письмо признаёт выводы о памяти, скорости и NaN «entirely correct», но не называет ни одного конкретного утверждения статьи (50%, O(1), сходимость демо) и в самой статье ничего не исправлено."
+    },
+    {
+     "id": "annex-c-50pct",
+     "stands": true,
+     "correction": "",
+     "evidence": "Annex C на странице 7 PDF: «stable 50% activation memory reduction». v2 сохраняет в 3.35–3.67 раза больше явного softmax и в 10.95–40.71 раза больше sdpa (mem.py)."
+    },
+    {
+     "id": "kv-cache",
+     "stands": true,
+     "correction": "",
+     "evidence": "grep по generate и cache в v2 пуст. Для |q·k*|² нужен весь комплексный k, то есть KR и KI, плюс V: 3·128·4 = 1536 Б на токен на слой. У обычного attention 1024 Б, у v1 (complex64 K и V) 2048 Б. В v2 тему KV cache авторы не поднимают, так что точнее было бы «не затронуто; если применить к v2 — +50%, а не −50%»."
+    },
+    {
+     "id": "causality",
+     "stands": true,
+     "correction": "",
+     "evidence": "arch.py: при causal_mask=False |d out[0] / d x[будущие]| = 0.156, при маске 0.0. env(dt=0) = 1.4142 — максимум среди всех ключей при σ0 = 0.5, 2 и 4 (envelope.py)."
+    },
+    {
+     "id": "photonic",
+     "stands": false,
+     "correction": "Вердикт «unverifiable» верен. Добавка преувеличена. v2 убрал комплексный V и чтение модуля |ΣA V|, которое в разделе 2.3 названо analog-to-digital readout. Но |Ψ|², то есть Born rule на фотодетекторе из Annex C, в v2 остался. WDM в Annex C относится к головам, а не к фазовому повороту. Фазовый поворот в Annex C не упоминается.",
+     "evidence": "Текст Annex C (страница 7 PDF) и раздела 2.3 (страница 3) сверен с кодом v2: A = Psi_re² + Psi_im² есть, omega и complex V нет."
+    },
+    {
+     "id": "chatbot-output",
+     "stands": true,
+     "correction": "",
+     "evidence": "PDF прочитан напрямую. Страница 1: «You can send them the following breakdown», «This script can be executed directly within their environment». Страница 4: «Use code with caution.» и заключительный вопрос; подписи нет; «initial variance (σ₀)». Слои blueprint и replacement при одинаковых весах дают разницу выходов 0.0 (nan.py)."
+    }
+   ],
+   "missed": "1. В v2 позицию задаёт только envelope. Фазовый поворот убран, а RoPE не добавили. Если envelope плоский (log σ0=20), выход в последней позиции не меняется от перестановки предыдущих токенов: разница 7.5e−8, а при σ0=2 она 0.73 (arch.py). В контроле рецензента без envelope (cvqiaa2-noenv) loss 1.107 против 0.946 при lr 3e-3. Обученные σ0 1.78–3.73 дают не меньше 90% позиционного веса на 5 ближайших символах, а при любом σ0 ≤ 32 дальняя половина контекста получает не больше 0.5%. По сути v2 — Born attention с выученным локальным окном; глобальной головы из Annex A в нём нет.\n2. Что v2 делает лучше v1, проверяющий не отметил. v2 лучше real Born с RoPE (0.985 против 1.034±0.001 при lr 1e-3) и лучше v1 (0.946 против 1.042 при lr 3e-3). Обучение на MPS идёт 239 с против 2156 с у v1. На CPU на реальном тексте 0 из 30 шагов с NaN, а у v1 139 из 172 тензоров с NaN на том же батче.\n3. Проверка D у проверяющего (0 NaN, σ0 2 → 1.94, градиент −6.46) сделана на одном случайном батче с target = input (loss 0.021), где attention не нужен. Правильные доказательства — реальный текст (мой прогон) и прогоны рецензента.\n4. Откуда, видимо, взялась формула v2. Множитель exp(−dt²/2σt²) — это модуль одного свободно расплывшегося пакета в точке dt: |ψ_t(x)| ∝ (σ0/σt)^½·exp(−x²/2σt²). Но предмножитель в v2 возведён в квадрат (σ0/σt) и умножен на √2. То есть это значение одного пакета, а не интеграл перекрытия двух, вопреки словам письма.\n5. В тесте 2 replacement память измеряется на модели, у которой осталось log σ0 = −12 после теста 1. На объём памяти это не влияет, но показывает, что скрипт никто не проверял. Письмо обещает сравнение «against their baseline parameters», но скрипт ничего не импортирует из репозитория рецензента и базовой модели в нём нет.\nМои скрипты и логи: /private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/claims-refute (mem.py, timing.py, envelope.py, nan.py, thresh.py, cpu_real.py, arch.py и их .log)."
+  }
+ },
+ {
+  "key": "harness",
+  "found": {
+   "summary": "The reviewer's v2 harness calls the authors' layer correctly. Both v2 PDFs contain the same layer, and its transcription matches them. The wrapper keeps the causal mask on and leaks nothing from future tokens. The old softmax and born runs still reproduce exactly with today's code, and cvqiaa2-noenv sets the envelope to a constant and changes nothing else. None of the likely author objections holds up. The comparison actually favours cvqiaa2: it has 51% more attention parameters, gets the same learning-rate grid and seeds as softmax, and is trained on a char-level, 128-token task that rewards a local bias. Two caveats are real. First, the softmax-vs-cvqiaa2 gap mixes two changes, the normalisation and the positional encoding (RoPE vs envelope). Second, with the published init σ0=2 the envelope works as a 5-10-token window that gradient descent cannot widen. In CPU sanity runs cvqiaa2 learns copy-1 and copy-3 but fails copy-8, and on a repeat task at distance 23 it stays at chance for 1500 steps, while softmax and born solve it. Finished TinyStories runs so far: cvqiaa2 0.9465/0.9467 at lr 3e-3 against softmax 0.9175 and born 0.9394, one seed each. The grid is still running, so no conclusion yet.",
+   "findings": [
+    {
+     "id": "wrapper-faithful",
+     "claim": "models.Analytical calls AnalyticalCVQIAALayer exactly as published (causal mask on, same input as other variants, no device/dtype mismatch)",
+     "verdict": "holds",
+     "evidence": "Both PDFs read page by page: the layer is identical in 'Response Blueprint' and 'Replacement Script' and in src/paper_v2_*.py. With shared weights max|out_blueprint - out_replacement| = 0.0. Wrapper vs layer(x, causal_mask=True): 0.0; vs causal_mask=False: 0.968. Changing tokens 64..127 changes logits at 0..63 by exactly 0 for cvqiaa2, cvqiaa2-noenv, softmax and born. The positions argument is ignored (output diff 0.0); the v2 code builds arange(T) on x.device with x.dtype, so integer token distances are what v2 specifies. The input is ln1(x), the same as for every variant. Step-1 losses rerun on CPU equal the stored MPS logs to 4 decimals: cvqiaa2 s0 lr3e-3 train 4.7922 / val 4.7549.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/harness/check_integration.py"
+    },
+    {
+     "id": "noenv-only-envelope",
+     "claim": "cvqiaa2-noenv switches off the envelope and nothing else ('sigma0 fixed at e^20, so the envelope is sqrt(2) for every pair')",
+     "verdict": "holds",
+     "evidence": "Derivation: sigma0^2 = e^40 = 2.35e17, and (dt/sigma0)^2 <= 6.9e-14 is far below the float32 ulp of 2.35e17. So sigma_t^2 == sigma0^2, sqrt(2*s/(s+1e-9)) = sqrt(2), and exp(-16129/4.7e17) = 1. Measured at T=128: the only value is 1.41421354. With the same seed, all tensors of cvqiaa2 and noenv are identical except log_sigma0. log_sigma0 has requires_grad=False and is still 20.0 after 5 AdamW steps. noenv output vs an envelope of exactly 1 differs by max 1.5e-6, from eps 1e-9 (mean output 0.081). Caveat: v2 has no other positional encoding, so noenv measures 'envelope vs no position information at all (causal mask only)', not 'envelope vs RoPE'. The logged 'params' for noenv includes 16 frozen values (950,544 total, 950,528 trainable).",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/harness/check_integration.py"
+    },
+    {
+     "id": "old-baselines-reproduce",
+     "claim": "The older softmax/born runs (13:33, before models.py/train.py gained cvqiaa2) are comparable with the new cvqiaa2 runs",
+     "verdict": "holds",
+     "evidence": "train.py step 0 plus evaluate() replicated on CPU with today's code; stored values were from MPS. softmax s0 lr3e-3: train 4.6985 val 4.6640 = stored 4.6985 / 4.6640. softmax s1 lr1e-3: 4.7152 / 4.6935 = stored. born s0 lr1e-3: 4.7007 / 4.6841 = stored. Init, data stream and eval batches are therefore unchanged, and paired seeds share identical batches across kinds.",
+     "severity": "info",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/harness/check_softmax_repro.py"
+    },
+    {
+     "id": "params-favour-cvqiaa2",
+     "claim": "Likely author objection: the parameter budget is unfair to cvqiaa2",
+     "verdict": "fails",
+     "evidence": "vocab 98, d128, 4 heads, d_ff 512, 4 layers. Attention parameters: softmax/born 262,656; cvqiaa2 396,304 (+51%); v1 cvqiaa 181,248. Total: softmax/born 816,896; cvqiaa2 950,544 (+16%). The imbalance favours cvqiaa2. It also confounds born vs cvqiaa2, which differ by 134k attention parameters. There is no parameter-matched control.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/harness/check_integration.py"
+    },
+    {
+     "id": "optimiser-symmetric",
+     "claim": "Learning rates, warmup/cosine, clipping, weight decay and init are applied fairly",
+     "verdict": "holds",
+     "evidence": "train.py treats every kind the same: AdamW (default wd 0.01), 100-step warmup then cosine to 0, global grad clip 1.0, default nn.Linear init, same seed means the same batches. run_v2.sh gives cvqiaa2 and softmax the same grid: 1e-3 and 3e-3 with 3 seeds each (the softmax 1e-3 seeds and the 3e-3 seed 0 come from earlier runs), and 6e-3 with 1 seed each. Weight decay on log_sigma0 is negligible: the product of (1 - lr*wd) over the run is 0.985 / 0.956 / 0.914 at lr 1e-3 / 3e-3 / 6e-3. log_sigma0 gets a nonzero gradient at init (|g| 1e-6 to 2.3e-3). Gaps: noenv and born at 3e-3 have one seed only; nothing above 6e-3 was tried; there is no separate lr for sigma0.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/harness/check_integration.py"
+    },
+    {
+     "id": "rope-asymmetry",
+     "claim": "Likely author objection: softmax and born get RoPE while cvqiaa2 does not",
+     "verdict": "partly",
+     "evidence": "This follows v2 as published. v1 had a per-dimension phase rotation e^{i omega s} on Q/K/V (wavellm_fixed.py lines 46-54); v2 dropped it, so its only positional signal is env^2(dt), a multiplicative prior that does not depend on content. env^2 is non-increasing in dt for every log_sigma0 in [-4, 6] (checked numerically), so position alone cannot make a head peak at offset k. The objection therefore has no force against the harness, and born already tests Born normalisation with RoPE. A real gap remains: softmax vs cvqiaa2 changes the normalisation, complex scores, the positional encoding and the parameter count at once. No control such as softmax or born with the envelope and no RoPE, or cvqiaa2 with RoPE, exists.",
+     "severity": "minor",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/harness/check_integration.py"
+    },
+    {
+     "id": "envelope-range-trap",
+     "claim": "Likely author objection: context 128 vs the envelope range, or the sigma0 init, makes the test unfair",
+     "verdict": "fails",
+     "evidence": "At init sigma0=2 for the last query: env^2(dt=127)/env^2(0) = 1.8e-5, and 96.7% of the positional prior lies within dt<=5. Learned sigma0 on TinyStories: 1.78-3.73 at lr 3e-3, 1.81-2.55 at lr 1e-3, i.e. still local. Weight at large distances peaks at sigma0 near sqrt(2) (asymptote 2 s^4 e^{-s^2}/dt^2), falls to 1.3e-28 at sigma0=11.2 for dt=127, and becomes flat (>=0.5 of dt=0) only from sigma0>=153 (log 5.03, i.e. +4.3 from init). The total lr over a run, which bounds how far Adam can move log_sigma0, is 1.50 / 4.50 / 9.01 at lr 1e-3 / 3e-3 / 6e-3. d log env^2(127) / d log sigma0 = -4.0 at sigma0=2 and -22.9 at 3.73, so a long-range signal pushes sigma0 down. The published layer is therefore a ~5-10-token window that training cannot widen. The harness uses the authors' own init. Char-level ctx 128 favours locality (on TinyStories the envelope beats noenv by 0.16 nats), so the setup helps the layer rather than hurting it. A long-range benchmark would be harsher.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/harness/envelope_valley.py"
+    },
+    {
+     "id": "sanity-retrieval",
+     "claim": "Can cvqiaa2 learn position-dependent retrieval at all, and does the envelope help? (CPU, models.LM d128, 4 heads, 2 layers, d_ff 256, B64, AdamW 3e-3, 5% warmup + cosine, clip 1; accuracy on 512 fixed eval sequences)",
+     "verdict": "partly",
+     "evidence": "copy-k (V16, T64, chance 0.0625):\n- k=1, 60 steps, seed 0: softmax 1.000, born 0.996, cvqiaa2 1.000, noenv 0.345.\n- k=3, seeds 0/1: softmax 1.000/1.000 (300 steps; already 1.0 at step 75); cvqiaa2 0.941/0.933 (200 steps; 0.67 at step 50); noenv 0.237/0.238 (200 steps). born not run.\n- k=8, 300 steps, seeds 0/1: softmax 1.000/1.000 (1.0 by step 75); born 0.971/0.965; cvqiaa2 0.201/0.227 (loss 2.50/2.39, still slowly rising); noenv 0.176/0.177.\nrepeat-24 (V32, T48; the answer is 23 positions back; chance 0.031):\n- softmax 1.000/1.000 (seeds 0/1, 300 steps); born 0.999 (seed 0).\n- cvqiaa2 0.031/0.029 at 300 steps; seed 0 at 1500 steps 0.029 with loss 3.4658 = ln 32, sigma0 1.94-2.11: no learning at all.\n- noenv 0.202 (seed 0, 300 steps, rising).\nThe envelope makes short-offset retrieval possible (k=1, 3); without it the model has no position information. It fails at k=8 and blocks retrieval at distance 23, where removing it does better. Small models and few steps; repeat-24 has 1-2 seeds.",
+     "severity": "major",
+     "script": "/private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/harness/sanity_tasks.py"
+    },
+    {
+     "id": "tinystories-v2-partial",
+     "claim": "Finished cvqiaa2 runs on TinyStories (grid in progress, no conclusions)",
+     "verdict": "unverifiable",
+     "evidence": "From results/*.json and train-v2.log at about 19:27. Final val loss, nats per character:\n- lr 3e-3: softmax s0 0.9175 (old run); born s0 0.9394; cvqiaa2 s0 0.9465, s1 0.9467; cvqiaa2-noenv s0 1.1066.\n- lr 1e-3: cvqiaa2 s0 0.9854 vs softmax s0/s1/s2 0.9723/0.9773/0.9731 and born 1.0333/1.0354/1.0338.\nAt lr 1e-3 cvqiaa2 leads softmax early (val 1.381 vs 1.483 at step 250, 1.233 vs 1.261 at step 500) and trails from step 1000 on. No NaN. Time: 239-316 s per 3000 steps on MPS vs 143 s for softmax.\nStill pending: softmax s1/s2 at 3e-3, cvqiaa2 s2 at 3e-3, cvqiaa2 s1/s2 at 1e-3, and the 6e-3 pair.",
+     "severity": "info",
+     "script": ""
+    }
+   ]
+  },
+  "refute": {
+   "checks": [
+    {
+     "id": "wrapper-faithful",
+     "stands": true,
+     "correction": "",
+     "evidence": "I read both v2 PDFs page by page. The layer text matches src/paper_v2_*.py. The authors' WaveTransformerDemo is token_emb -> attn -> lm_head with no positional encoding. check_a.py: wrapper(x, positions=random) - layer(x, causal_mask=True) = 0.0. blueprint - replacement = 0.0 at log_sigma0 = init, -15, 0 and 3. Changing tokens 64..127 changes logits at t<64 by 0.0 for cvqiaa2, noenv, softmax and born, while logits at t>=64 change by 3.1-3.4. grad0.py: the cvqiaa2 seed 0 first-batch loss is 4.7922, equal to the stored step-1 train value. The mask-off difference (0.968 in their run, 1.035 in mine) depends on the random input."
+    },
+    {
+     "id": "noenv-only-envelope",
+     "stands": true,
+     "correction": "",
+     "evidence": "check_a.py: the only noenv envelope value is 1.4142135, with sigma0^2 = 2.354e17. With the same seed, the only tensors that differ from cvqiaa2 are the four log_sigma0, by 19.307 each. requires_grad is False. Parameters: 950,544 total, 950,528 trainable. Their caveat 'causal mask only' is correct. See the sanity check for the separate overstatement 'no position information'."
+    },
+    {
+     "id": "old-baselines-reproduce",
+     "stands": true,
+     "correction": "",
+     "evidence": "repro.py re-implements the loop without importing train.py and runs on CPU. softmax s0 lr3e-3 at step 1: train 4.6985, val 4.6640, identical to the stored MPS run from 13:33. At step 250: val 1.3673 vs stored 1.3648 (difference 0.0025, CPU vs MPS numerics), train 1.3411 vs 1.3463. So the warmup and cosine schedule also agree through step 250. Stored args (steps, batch, ctx, eval) are identical across old and new JSONs."
+    },
+    {
+     "id": "params-favour-cvqiaa2",
+     "stands": true,
+     "correction": "",
+     "evidence": "check_a.py: attention parameters are softmax/born 262,656, cvqiaa2 396,304, v1 cvqiaa 181,248. Ratio 1.509, so +51%. Totals are 816,896 vs 950,544, ratio 1.164. Per layer: 3*128*128 + 16,512 = 65,664 vs 6*16,512 + 4 = 99,076. That the extra parameters 'favour' cvqiaa2 is an inference, not a measurement, but the counts and the absence of a parameter-matched control are exact."
+    },
+    {
+     "id": "optimiser-symmetric",
+     "stands": true,
+     "correction": "",
+     "evidence": "check_a.py: the sum of lr over a run is 1.501 / 4.503 / 9.006, and prod(1 - lr*wd) is 0.9851 / 0.9560 / 0.9139, matching their numbers. run_v2.sh grid confirmed. grad0.py: |grad log_sigma0| on the real first TinyStories batch is 9.0e-5 to 3.15e-3 for seed 0 and 1.1e-4 to 2.9e-3 for seed 1. Their range of 1e-6 to 2.3e-3 is input-dependent, but the gradient is nonzero either way. The global grad norm at init is 2.45 and 2.08, so clipping at 1.0 is active for every kind."
+    },
+    {
+     "id": "rope-asymmetry",
+     "stands": true,
+     "correction": "",
+     "evidence": "Monotonicity holds analytically for every sigma0 > 0, which is stronger than their numeric check. env^2 = (2u/w) * exp(-D u/(u^2 + D)) with u = sigma0^2, D = dt^2, w = u + D/u. The prefactor decreases in D, and D u/(u^2 + D) increases in D, so env^2 is a product of two positive decreasing functions. A numeric grid over log sigma0 in [-8, 12] and dt in [0, 130] gives 0 violations. The authors' own demo shell has no positional encoding either, so 'follows v2 as published' holds."
+    },
+    {
+     "id": "envelope-range-trap",
+     "stands": false,
+     "correction": "The numbers are right, but three statements are wrong or overstated. (1) 'Total lr bounds how far Adam can move log_sigma0' is false. A single Adam step reached 2.51x lr under a sparse gradient. In my sigma0-init-40 run, layer-1 log sigma0 moved by 1.33 (40 to 10.6) with total lr 0.90, about 1.45x. Even read as an approximate bound, the budgets at 3e-3 (4.50) and 6e-3 (9.01) exceed the +4.3 needed, so only the gradient-sign argument blocks widening. (2) 'A window training cannot widen' is wrong as worded. Training does raise sigma0 inside the valley: up to 4.95 on TinyStories (seed 1, lr 3e-3; the finding gives 1.78-3.73 and omits that seed's values, although it uses its loss) and up to 4.26 on copy-8. That widens the near window: relative weight at dt=5 goes from 0.034 to 0.36. At the same time it shrinks the far tail: at dt=23, 6.0e-4 to 5.5e-6. What training cannot do from sigma0=2 is cross the valley: dt=127 needs sigma0 >= 153, and dt=23 needs sigma0 >= 27.6. (3) The trap comes from the init, not the formula. With sigma0 initialised at 40, cvqiaa2 learns repeat-24 to 0.729, against 0.481 for noenv and 0.031 for init 2. Layer 1 narrows itself to about 11 and layer 2 stays at 20-43. The harness is fair because it uses the authors' init, but the conclusion holds for sigma0 init = 2 only. 'Char-level ctx 128 rewards a local bias' is also inferred, not measured: the 0.16 nats compares the envelope with no explicit positional encoding at all, not locality with RoPE.",
+     "evidence": "check_a.py confirms 96.74% of the prior within dt<=5 at s=2, env^2 ratio 1.82e-5 at dt=127, 1.31e-28 at s=11.2, the flat threshold s=152.6, and d log env^2/d log s = -3.98 at s=2 and -22.89 at s=3.73. The Adam sparse-gradient test gives a max step of 2.51x lr. e3_rep24_init40.out: acc 0.7286, loss 0.812, final sigma0 [[11.48, 10.89, 10.61, 11.63], [40.15, 20.4, 42.9, 20.48]]. e5_rep24_init2.out: 0.0311. e4_rep24_noenv.out: 0.4811 (all seed 0, 600 steps, lr 3e-3). results/train-cvqiaa2-seed1-lr0.003.json: sigma0 max 4.95."
+    },
+    {
+     "id": "sanity-retrieval",
+     "stands": false,
+     "correction": "'Fails copy-8' is a 300-step result with lr annealed to 0. In 1200 steps cvqiaa2 learns copy-8 partially: 0.728 accuracy, loss 0.633, sigma0 3.1-4.3, plateauing as the lr anneals. That is slow and incomplete, not failure; softmax still reaches 1.0 within 75 steps. Also, cvqiaa2 got 200 steps on copy-3 against 300 for softmax. 'Blocks retrieval at distance 23' is confirmed at init 2 and is robust to lr: 0.031 at lr 3e-3 and 0.033 at lr 1e-2, loss = ln 32, sigma0 stuck at 1.9-2.1. It is specific to init 2, though: init 40 gives 0.729, above noenv's 0.481. 'Without it the model has no position information' is overstated. noenv reaches 0.48 on repeat-24 and 0.345 on copy-1 (chance 0.031 and 0.0625), so the causal mask carries implicit position.",
+     "evidence": "sanity2.py uses its own generator and loop, the same LM skeleton (d128, 4 heads, 2 layers, d_ff 256), B64, AdamW, 5% warmup plus cosine, clip 1, and 1024 eval sequences, all seed 0. e1_copy8_long_s0.out accuracy by step: 200: 0.260, 400: 0.540, 600: 0.644, 800: 0.693, 1000: 0.721, 1200: 0.728. e2_rep24_lr1e-2.out: 0.0327, loss 3.4657, sigma0 1.91-2.14. e5: 0.0311. e4 noenv: 0.4811. e3 init40: 0.7286. These are single seeds."
+    },
+    {
+     "id": "tinystories-v2-partial",
+     "stands": false,
+     "correction": "The loss values are right. The timing comparison '239-316 s vs 143 s for softmax' is confounded by machine load, which reached about 80-120. born at lr 3e-3 took 459 s against 158 s at lr 1e-3 for identical compute. A softmax run inside the same v2 grid (s1, lr 3e-3) took 157 s, so the in-grid ratio is about 1.5-2.0x, and that is still unreliable. Two runs finished after the finding's snapshot: softmax s1 lr 3e-3 at 0.9278, and cvqiaa2 s1 lr 1e-3 at 0.9854 (319 s; sigma0 1.81-2.64). Current pairs: at 3e-3, cvqiaa2 0.9465/0.9467 vs softmax 0.9175/0.9278; at 1e-3, cvqiaa2 0.9854/0.9854 vs softmax 0.9723/0.9773/0.9731. The grid is still running, so no conclusion yet.",
+     "evidence": "I read results/*.json at 19:37. Curves at lr 1e-3: 1.3813 vs 1.4833 at step 250 and 1.2326 vs 1.2611 at step 500, confirmed. Every nan_step is None. Seconds: born lr 1e-3 = 158 s, born lr 3e-3 = 459 s, softmax s1 lr 3e-3 = 157 s."
+    }
+   ],
+   "missed": "1. The main gap is that the long-range conclusion depends on the init. With the published sigma0=2, gradient descent stays on the near side of the valley. Repeat-24 stays at chance at lr 3e-3 and 1e-2 (0.031 and 0.033, with sigma0 1.9-2.1). With sigma0 initialised at 40, the same layer learns repeat-24 to 0.729 in 600 steps, against 0.481 for noenv. It sets itself up as layer 1 local (sigma0 about 11) and layer 2 wide (20-43). There is no sigma0-init ablation on TinyStories, so 'the envelope is a local window' is proven for the authors' init only. The authors' letter says sigma0 is learned 'so the network can optimize localization'. The result refutes that from their init, but they can answer 'change the init'. A cheap fix is a cvqiaa2 run with sigma0 init of 40 or 160 at lr 3e-3. 2. The 'Adam budget' argument is wrong: Adam steps can exceed lr (2.51x measured), and the observed travel was 1.45x the total lr. 3. The authors claim 'computational parity'; the timing evidence for that is confounded by load: the same-config born run took 158 s once and 459 s another time. 4. The authors' letter expects v2 to beat softmax on TinyStories. The finished pairs so far show the opposite at both lrs, by about 0.011 nats at 1e-3 and about 0.024 at 3e-3, with 2-3 seeds each. That is still partial. 5. noenv is not position-free: through the causal mask it reaches 0.48 on repeat-24. Scripts and outputs are in /private/tmp/claude-501/-Users-rb-Library-CloudStorage-GoogleDrive-baranov-ra-gmail-com-My-Drive-Projects-2026-AI-Researches/ed1305c5-8158-49cb-af16-974b69da60cf/scratchpad/v2/agents/harness-refute: check_a.py (with check_a.out), repro.py (repro_softmax.out), sanity2.py (e1-e5 *.out) and grad0.py."
+  }
+ }
+]

@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "softmax",
+  "seed": 2,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.003,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 816896,
+ "attention_params": 262656,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.778218746185303,
+   "val": 4.744770164489746,
+   "seconds": 1.4410130977630615
+  },
+  {
+   "step": 250,
+   "train": 1.422428011894226,
+   "val": 1.3769129586219788,
+   "seconds": 13.19540786743164
+  },
+  {
+   "step": 500,
+   "train": 1.2207953929901123,
+   "val": 1.2035725760459899,
+   "seconds": 28.135515928268433
+  },
+  {
+   "step": 750,
+   "train": 1.1756134033203125,
+   "val": 1.1371732091903686,
+   "seconds": 40.84779691696167
+  },
+  {
+   "step": 1000,
+   "train": 1.1124329566955566,
+   "val": 1.0799190557003022,
+   "seconds": 55.105632066726685
+  },
+  {
+   "step": 1250,
+   "train": 1.050351858139038,
+   "val": 1.047946891784668,
+   "seconds": 67.78504395484924
+  },
+  {
+   "step": 1500,
+   "train": 0.9902222752571106,
+   "val": 1.0197861659526826,
+   "seconds": 84.62434196472168
+  },
+  {
+   "step": 1750,
+   "train": 0.921889066696167,
+   "val": 0.9904880940914154,
+   "seconds": 100.20600891113281
+  },
+  {
+   "step": 2000,
+   "train": 0.8901076316833496,
+   "val": 0.9649125480651856,
+   "seconds": 111.25697302818298
+  },
+  {
+   "step": 2250,
+   "train": 0.9125720262527466,
+   "val": 0.9452708721160888,
+   "seconds": 125.98885416984558
+  },
+  {
+   "step": 2500,
+   "train": 0.8649704456329346,
+   "val": 0.9313519966602325,
+   "seconds": 138.60122084617615
+  },
+  {
+   "step": 2750,
+   "train": 0.8797917366027832,
+   "val": 0.9231244313716889,
+   "seconds": 152.28287482261658
+  },
+  {
+   "step": 3000,
+   "train": 0.919296383857727,
+   "val": 0.9210299038887024,
+   "seconds": 166.622074842453
+  }
+ ],
+ "nan_step": null,
+ "seconds": 166.79721593856812,
+ "final_val": 0.9210299038887024,
+ "sample": "Once upon a time, there was a big mole of time. The end.\n<|endoftext|>\n\nOnce upon a time there was a little boy named Timmy. He was very happy. He likes to do, take the including match and colorful. He found something laughing and think \"What is your body!\" Tom says.\nJimmy said, \"Let's go home to be where the bunny"
+}
