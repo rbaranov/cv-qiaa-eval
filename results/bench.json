@@ -1,0 +1,97 @@
+{
+ "batch": 4,
+ "d_model": 128,
+ "heads": 4,
+ "rows": [
+  {
+   "T": 64,
+   "kind": "softmax",
+   "ms": 32.7298641204834,
+   "activation_mb": 0.890625
+  },
+  {
+   "T": 64,
+   "kind": "born",
+   "ms": 27.898629506429035,
+   "activation_mb": 1.41015625
+  },
+  {
+   "T": 64,
+   "kind": "cvqiaa",
+   "ms": 66.99903806050618,
+   "activation_mb": 5.31640625
+  },
+  {
+   "T": 128,
+   "kind": "softmax",
+   "ms": 33.455451329549156,
+   "activation_mb": 2.28125
+  },
+  {
+   "T": 128,
+   "kind": "born",
+   "ms": 30.904452006022137,
+   "activation_mb": 4.3515625
+  },
+  {
+   "T": 128,
+   "kind": "cvqiaa",
+   "ms": 477.4589538574219,
+   "activation_mb": 14.7578125
+  },
+  {
+   "T": 256,
+   "kind": "softmax",
+   "ms": 42.28496551513672,
+   "activation_mb": 6.5625
+  },
+  {
+   "T": 256,
+   "kind": "born",
+   "ms": 46.25837008158366,
+   "activation_mb": 14.828125
+  },
+  {
+   "T": 256,
+   "kind": "cvqiaa",
+   "ms": 331.27737045288086,
+   "activation_mb": 46.015625
+  },
+  {
+   "T": 512,
+   "kind": "softmax",
+   "ms": 113.21441332499187,
+   "activation_mb": 21.125
+  },
+  {
+   "T": 512,
+   "kind": "born",
+   "ms": 114.91163571675618,
+   "activation_mb": 54.15625
+  },
+  {
+   "T": 512,
+   "kind": "cvqiaa",
+   "ms": 412.8409226735433,
+   "activation_mb": 158.03125
+  },
+  {
+   "T": 1024,
+   "kind": "softmax",
+   "ms": 126.93309783935547,
+   "activation_mb": 74.25
+  },
+  {
+   "T": 1024,
+   "kind": "born",
+   "ms": 150.1187483469645,
+   "activation_mb": 206.3125
+  },
+  {
+   "T": 1024,
+   "kind": "cvqiaa",
+   "ms": 1370.7826137542725,
+   "activation_mb": 580.0625
+  }
+ ]
+}

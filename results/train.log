@@ -1,0 +1,174 @@
+none seed 0 step 1: train 4.8121 val 4.7809 (6.897 bpc) 1s
+none seed 0 step 250: train 2.3280 val 2.3178 (3.344 bpc) 6s
+none seed 0 step 500: train 2.3104 val 2.3113 (3.335 bpc) 12s
+none seed 0 step 750: train 2.3183 val 2.3083 (3.330 bpc) 18s
+none seed 0 step 1000: train 2.2810 val 2.3067 (3.328 bpc) 23s
+none seed 0 step 1250: train 2.3380 val 2.3041 (3.324 bpc) 30s
+none seed 0 step 1500: train 2.2717 val 2.3038 (3.324 bpc) 36s
+none seed 0 step 1750: train 2.2955 val 2.3011 (3.320 bpc) 41s
+none seed 0 step 2000: train 2.3314 val 2.3006 (3.319 bpc) 47s
+none seed 0 step 2250: train 2.2653 val 2.2995 (3.317 bpc) 53s
+none seed 0 step 2500: train 2.3208 val 2.2985 (3.316 bpc) 58s
+none seed 0 step 2750: train 2.2519 val 2.2976 (3.315 bpc) 64s
+none seed 0 step 3000: train 2.2973 val 2.2975 (3.315 bpc) 69s
+Once upon a timerned. chid ute On m led imoupe Thange lofthap s g fo wandelurofuloomel biat antor ge sitod Here nd arm mesthe wake they a t 
+Onire the I d ply, ta and w, s t ollengsthind, hed s ckedapo foustt an. Tistous wo ine s d Tile "
+The anoom wa wanind wit brand fe hay the angasar hed asast ats he ran are, to
+softmax seed 0 step 1: train 4.6985 val 4.6848 (6.759 bpc) 2s
+softmax seed 0 step 250: train 1.4453 val 1.4833 (2.140 bpc) 12s
+softmax seed 0 step 500: train 1.2071 val 1.2611 (1.819 bpc) 24s
+softmax seed 0 step 750: train 1.2093 val 1.1764 (1.697 bpc) 34s
+softmax seed 0 step 1000: train 1.1085 val 1.1182 (1.613 bpc) 45s
+softmax seed 0 step 1250: train 1.0649 val 1.0846 (1.565 bpc) 55s
+softmax seed 0 step 1500: train 1.0181 val 1.0533 (1.520 bpc) 66s
+softmax seed 0 step 1750: train 0.9638 val 1.0317 (1.488 bpc) 77s
+softmax seed 0 step 2000: train 1.0347 val 1.0096 (1.457 bpc) 89s
+softmax seed 0 step 2250: train 0.9918 val 0.9920 (1.431 bpc) 100s
+softmax seed 0 step 2500: train 0.9869 val 0.9804 (1.414 bpc) 110s
+softmax seed 0 step 2750: train 0.9415 val 0.9737 (1.405 bpc) 121s
+softmax seed 0 step 3000: train 0.9387 val 0.9723 (1.403 bpc) 131s
+Once upon a time, there was a big mill disturbed and saw that she was better if they were grandled with her best friend, she felt very party! 
+<|endoftext|>
+Once upon a time, there was a little girl named Lily. He liked to see what his dad said, "Okay, I was walking with her toys again. It was so scared and ran awa
+born seed 0 step 1: train 4.7007 val 4.6841 (6.758 bpc) 1s
+born seed 0 step 250: train 1.7131 val 1.7457 (2.518 bpc) 14s
+born seed 0 step 500: train 1.4271 val 1.4703 (2.121 bpc) 28s
+born seed 0 step 750: train 1.3839 val 1.3335 (1.924 bpc) 41s
+born seed 0 step 1000: train 1.2381 val 1.2476 (1.800 bpc) 55s
+born seed 0 step 1250: train 1.1629 val 1.1910 (1.718 bpc) 68s
+born seed 0 step 1500: train 1.1208 val 1.1457 (1.653 bpc) 81s
+born seed 0 step 1750: train 1.0518 val 1.1108 (1.603 bpc) 94s
+born seed 0 step 2000: train 1.1135 val 1.0853 (1.566 bpc) 107s
+born seed 0 step 2250: train 1.0558 val 1.0571 (1.525 bpc) 119s
+born seed 0 step 2500: train 1.0729 val 1.0436 (1.506 bpc) 132s
+born seed 0 step 2750: train 1.0071 val 1.0351 (1.493 bpc) 145s
+born seed 0 step 3000: train 1.0046 val 1.0333 (1.491 bpc) 158s
+Once upon a time, there was a boy named Timmy. Timmy loved to play outside in the oat. Timmy was very stodies and card because he was playing with the clothes, taking with them, but his mom as differer for the new is of the beench this races and said, "I is this is owner." Joe couldn't like it to stuck in the bunny
+cvqiaa seed 0 step 1: train 4.6889 val 4.6751 (6.745 bpc) 24s
+cvqiaa seed 0 step 250: train 2.2578 val 2.2546 (3.253 bpc) 198s
+cvqiaa seed 0 step 500: train 2.0976 val 2.1048 (3.037 bpc) 375s
+cvqiaa seed 0 step 750: train 1.9167 val 1.8692 (2.697 bpc) 535s
+cvqiaa seed 0 step 1000: train 1.6468 val 1.6723 (2.413 bpc) 713s
+cvqiaa seed 0 step 1250: train 1.5663 val 1.5491 (2.235 bpc) 915s
+cvqiaa seed 0 step 1500: train 1.3857 val 1.4423 (2.081 bpc) 1083s
+cvqiaa seed 0 step 1750: train 1.3145 val 1.3774 (1.987 bpc) 1287s
+cvqiaa seed 0 step 2000: train 1.3573 val 1.3340 (1.925 bpc) 1487s
+cvqiaa seed 0 step 2250: train 1.2941 val 1.2996 (1.875 bpc) 1654s
+cvqiaa seed 0 step 2500: train 1.2913 val 1.2749 (1.839 bpc) 1824s
+cvqiaa seed 0 step 2750: train 1.2368 val 1.2628 (1.822 bpc) 1989s
+cvqiaa seed 0 step 3000: train 1.2442 val 1.2598 (1.817 bpc) 2144s
+Once upon a time, there was a big named it feel safe. Then alte go of be playing out the and pullen with his to cricrmbles. But were to as quee to the cool. The and some some leep stay dad anysy found the stay so and onsid. She saw sill "Whe fun!" Jom was said. Dotanted What they bear and shest to the big trare, to
+none seed 1 step 1: train 4.7064 val 4.7115 (6.797 bpc) 1s
+none seed 1 step 250: train 2.3502 val 2.3194 (3.346 bpc) 6s
+none seed 1 step 500: train 2.2907 val 2.3124 (3.336 bpc) 12s
+none seed 1 step 750: train 2.2374 val 2.3070 (3.328 bpc) 17s
+none seed 1 step 1000: train 2.3179 val 2.3059 (3.327 bpc) 22s
+none seed 1 step 1250: train 2.2761 val 2.3051 (3.326 bpc) 27s
+none seed 1 step 1500: train 2.3100 val 2.3035 (3.323 bpc) 33s
+none seed 1 step 1750: train 2.3066 val 2.3018 (3.321 bpc) 38s
+none seed 1 step 2000: train 2.2982 val 2.3001 (3.318 bpc) 44s
+none seed 1 step 2250: train 2.3311 val 2.2991 (3.317 bpc) 49s
+none seed 1 step 2500: train 2.2751 val 2.2984 (3.316 bpc) 54s
+none seed 1 step 2750: train 2.2810 val 2.2976 (3.315 bpc) 59s
+none seed 1 step 3000: train 2.3044 val 2.2977 (3.315 bpc) 65s
+Once upon a timerned. chid ute On m led imoupe Thange lofthap s g fo wandelurofuloomel biat antor ge sitod Here nd arm mesthe wake they a t 
+We re the I d ply, ta and w, s t ollengsthind, hed s ckedapo foustt an. Tistous wo ine s t Tile "
+The fun aker wanind wit brand fe hay the angasar hed asast ats he ran are, to
+softmax seed 1 step 1: train 4.7152 val 4.6935 (6.771 bpc) 1s
+softmax seed 1 step 250: train 1.6018 val 1.4818 (2.138 bpc) 13s
+softmax seed 1 step 500: train 1.2195 val 1.2662 (1.827 bpc) 24s
+softmax seed 1 step 750: train 1.0603 val 1.1786 (1.700 bpc) 34s
+softmax seed 1 step 1000: train 1.1376 val 1.1242 (1.622 bpc) 45s
+softmax seed 1 step 1250: train 0.9955 val 1.0886 (1.571 bpc) 57s
+softmax seed 1 step 1500: train 1.0687 val 1.0606 (1.530 bpc) 68s
+softmax seed 1 step 1750: train 1.0315 val 1.0348 (1.493 bpc) 81s
+softmax seed 1 step 2000: train 0.9909 val 1.0151 (1.465 bpc) 92s
+softmax seed 1 step 2250: train 1.0289 val 0.9968 (1.438 bpc) 103s
+softmax seed 1 step 2500: train 0.8989 val 0.9860 (1.422 bpc) 113s
+softmax seed 1 step 2750: train 0.9847 val 0.9786 (1.412 bpc) 124s
+softmax seed 1 step 3000: train 0.8946 val 0.9773 (1.410 bpc) 135s
+Once upon a time, there was a big monster with Timmy was not too hard behind of them with the pond. 
+His dad said, "Mmm, scared and started to stay with his friend, but it was tiny to find a small carrot with an toys on the bee carefully answered it up and started to play with her garden. 
+The two friend and wanted
+born seed 1 step 1: train 4.7102 val 4.6874 (6.763 bpc) 3s
+born seed 1 step 250: train 1.8566 val 1.7552 (2.532 bpc) 18s
+born seed 1 step 500: train 1.3963 val 1.4602 (2.107 bpc) 32s
+born seed 1 step 750: train 1.2114 val 1.3431 (1.938 bpc) 46s
+born seed 1 step 1000: train 1.2630 val 1.2532 (1.808 bpc) 59s
+born seed 1 step 1250: train 1.0915 val 1.1925 (1.720 bpc) 73s
+born seed 1 step 1500: train 1.1424 val 1.1470 (1.655 bpc) 86s
+born seed 1 step 1750: train 1.1123 val 1.1156 (1.609 bpc) 99s
+born seed 1 step 2000: train 1.0633 val 1.0836 (1.563 bpc) 115s
+born seed 1 step 2250: train 1.1045 val 1.0620 (1.532 bpc) 130s
+born seed 1 step 2500: train 0.9635 val 1.0469 (1.510 bpc) 144s
+born seed 1 step 2750: train 1.0457 val 1.0374 (1.497 bpc) 160s
+born seed 1 step 3000: train 0.9704 val 1.0354 (1.494 bpc) 175s
+Once upon a time, there was a big molething perfect every happy. 
+Timmy loved to be his hands and gentle dress on its a swimming a little too. Tim that colla water, but it was tiny to find anymore.
+Spot did not flew to stay into craying "What in you job, you will candy. What is not angry." 
+The bears had an are wit
+none seed 2 step 1: train 4.7674 val 4.7482 (6.850 bpc) 2s
+none seed 2 step 250: train 2.3319 val 2.3186 (3.345 bpc) 13s
+none seed 2 step 500: train 2.2967 val 2.3098 (3.332 bpc) 20s
+none seed 2 step 750: train 2.3513 val 2.3077 (3.329 bpc) 27s
+none seed 2 step 1000: train 2.2905 val 2.3071 (3.328 bpc) 34s
+none seed 2 step 1250: train 2.3025 val 2.3041 (3.324 bpc) 40s
+none seed 2 step 1500: train 2.2931 val 2.3037 (3.324 bpc) 46s
+none seed 2 step 1750: train 2.2688 val 2.3010 (3.320 bpc) 51s
+none seed 2 step 2000: train 2.2974 val 2.3007 (3.319 bpc) 57s
+none seed 2 step 2250: train 2.2688 val 2.2993 (3.317 bpc) 62s
+none seed 2 step 2500: train 2.2923 val 2.2983 (3.316 bpc) 68s
+none seed 2 step 2750: train 2.2787 val 2.2974 (3.314 bpc) 73s
+none seed 2 step 3000: train 2.3070 val 2.2974 (3.314 bpc) 78s
+Once upon a timerned. chid ute On m led imoupe Thange lofthap s g fo wandelurofuloomel biat antor ge sitod Here nd arm mesthe wake they a t 
+Onire the I d ply, ta and w, s t ollengsthind, hed s ckedapo foustt an. Tistous wo ine s t Tile "
+The fun any wome ban it brand fe hay the angasar hed asast ats he ran are, to
+softmax seed 2 step 1: train 4.7782 val 4.7652 (6.875 bpc) 1s
+softmax seed 2 step 250: train 1.5183 val 1.4881 (2.147 bpc) 12s
+softmax seed 2 step 500: train 1.2632 val 1.2609 (1.819 bpc) 22s
+softmax seed 2 step 750: train 1.2413 val 1.1843 (1.709 bpc) 32s
+softmax seed 2 step 1000: train 1.1610 val 1.1253 (1.623 bpc) 42s
+softmax seed 2 step 1250: train 1.0898 val 1.0832 (1.563 bpc) 52s
+softmax seed 2 step 1500: train 1.0312 val 1.0591 (1.528 bpc) 62s
+softmax seed 2 step 1750: train 0.9683 val 1.0337 (1.491 bpc) 73s
+softmax seed 2 step 2000: train 0.9275 val 1.0085 (1.455 bpc) 82s
+softmax seed 2 step 2250: train 0.9585 val 0.9927 (1.432 bpc) 93s
+softmax seed 2 step 2500: train 0.9158 val 0.9812 (1.416 bpc) 105s
+softmax seed 2 step 2750: train 0.9384 val 0.9746 (1.406 bpc) 115s
+softmax seed 2 step 3000: train 0.9592 val 0.9731 (1.404 bpc) 126s
+Once upon a time, there was a big m longer from the end. The train was wrong of the hole and pulled it back. Then, a mild came careful. The little girl could play with the toys, but did, while they were very sad. Timmy saw some clothes and said, "You would stay away. Jack was come inside the steal treats and fly. I
+born seed 2 step 1: train 4.7768 val 4.7652 (6.875 bpc) 1s
+born seed 2 step 250: train 1.7883 val 1.7549 (2.532 bpc) 16s
+born seed 2 step 500: train 1.4506 val 1.4504 (2.092 bpc) 29s
+born seed 2 step 750: train 1.4002 val 1.3289 (1.917 bpc) 43s
+born seed 2 step 1000: train 1.2594 val 1.2407 (1.790 bpc) 56s
+born seed 2 step 1250: train 1.1664 val 1.1875 (1.713 bpc) 69s
+born seed 2 step 1500: train 1.1098 val 1.1484 (1.657 bpc) 83s
+born seed 2 step 1750: train 1.0464 val 1.1098 (1.601 bpc) 96s
+born seed 2 step 2000: train 1.0066 val 1.0787 (1.556 bpc) 110s
+born seed 2 step 2250: train 1.0154 val 1.0565 (1.524 bpc) 124s
+born seed 2 step 2500: train 0.9786 val 1.0437 (1.506 bpc) 139s
+born seed 2 step 2750: train 1.0089 val 1.0358 (1.494 bpc) 153s
+born seed 2 step 3000: train 1.0291 val 1.0338 (1.491 bpc) 166s
+Once upon a time, there was a big molled and the frog were althing rain of the woods living and rege as her branches and started to go fast as so share colorful and stonil them.
+<|endoftext|>
+
+Once was friends note stopped brother things. They looked at himself and owner and they because their toys swing and daught
+cvqiaa seed 1 step 1: train 4.7355 val 4.7285 (6.822 bpc) 27s
+cvqiaa seed 1 step 250: train 2.3035 val 2.2645 (3.267 bpc) 189s
+cvqiaa seed 1 step 500: train 2.0635 val 2.0766 (2.996 bpc) 358s
+cvqiaa seed 1 step 750: train 1.7637 val 1.8848 (2.719 bpc) 540s
+cvqiaa seed 1 step 1000: train 1.7681 val 1.7350 (2.503 bpc) 722s
+cvqiaa seed 1 step 1250: train 1.5242 val 1.6109 (2.324 bpc) 939s
+cvqiaa seed 1 step 1500: train 1.5210 val 1.5141 (2.184 bpc) 1178s
+cvqiaa seed 1 step 1750: train 1.4503 val 1.4427 (2.081 bpc) 1373s
+cvqiaa seed 1 step 2000: train 1.3693 val 1.3878 (2.002 bpc) 1614s
+cvqiaa seed 1 step 2250: train 1.4062 val 1.3492 (1.946 bpc) 1821s
+cvqiaa seed 1 step 2500: train 1.2327 val 1.3243 (1.911 bpc) 2010s
+cvqiaa seed 1 step 2750: train 1.3176 val 1.3122 (1.893 bpc) 2211s
+cvqiaa seed 1 step 3000: train 1.2479 val 1.3087 (1.888 bpc) 2369s
+Once upon a time, a girl nauged to liste. The boy was so neap it the bear. She was a see and pulle with her bealin and the have fe the park and and he couldn the happy.
+<|endoftext|>
+Ondoft|>
+
+One day, the was a a little was go the lige nams nime named Inist wit the was the wan to gake out. He she fever ran a bunni

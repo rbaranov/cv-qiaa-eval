@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "born",
+  "seed": 1,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.001,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 816896,
+ "attention_params": 262656,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.710215091705322,
+   "val": 4.687412490844727,
+   "seconds": 3.437047004699707
+  },
+  {
+   "step": 250,
+   "train": 1.8565845489501953,
+   "val": 1.7552328610420227,
+   "seconds": 18.15664792060852
+  },
+  {
+   "step": 500,
+   "train": 1.3963217735290527,
+   "val": 1.4601505970954896,
+   "seconds": 32.45144987106323
+  },
+  {
+   "step": 750,
+   "train": 1.211350440979004,
+   "val": 1.3430717611312866,
+   "seconds": 46.131481885910034
+  },
+  {
+   "step": 1000,
+   "train": 1.262959361076355,
+   "val": 1.2532465696334838,
+   "seconds": 59.15852499008179
+  },
+  {
+   "step": 1250,
+   "train": 1.0915088653564453,
+   "val": 1.1925043773651123,
+   "seconds": 72.71324491500854
+  },
+  {
+   "step": 1500,
+   "train": 1.142418622970581,
+   "val": 1.1469535303115845,
+   "seconds": 85.87312293052673
+  },
+  {
+   "step": 1750,
+   "train": 1.112269401550293,
+   "val": 1.1156155967712402,
+   "seconds": 99.23414778709412
+  },
+  {
+   "step": 2000,
+   "train": 1.063265085220337,
+   "val": 1.0835936748981476,
+   "seconds": 114.92427611351013
+  },
+  {
+   "step": 2250,
+   "train": 1.1045392751693726,
+   "val": 1.061969783306122,
+   "seconds": 129.62188601493835
+  },
+  {
+   "step": 2500,
+   "train": 0.9634708762168884,
+   "val": 1.0468993782997131,
+   "seconds": 143.8239188194275
+  },
+  {
+   "step": 2750,
+   "train": 1.0456821918487549,
+   "val": 1.0374278104305268,
+   "seconds": 160.0200011730194
+  },
+  {
+   "step": 3000,
+   "train": 0.970415472984314,
+   "val": 1.035428056716919,
+   "seconds": 175.0595259666443
+  }
+ ],
+ "nan_step": null,
+ "seconds": 175.06032800674438,
+ "final_val": 1.035428056716919,
+ "sample": "Once upon a time, there was a big molething perfect every happy. \nTimmy loved to be his hands and gentle dress on its a swimming a little too. Tim that colla water, but it was tiny to find anymore.\nSpot did not flew to stay into craying \"What in you job, you will candy. What is not angry.\" \nThe bears had an are wit"
+}

@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "none",
+  "seed": 2,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.001,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 554240,
+ "attention_params": 0,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.767368316650391,
+   "val": 4.748228883743286,
+   "seconds": 1.5490498542785645
+  },
+  {
+   "step": 250,
+   "train": 2.3319265842437744,
+   "val": 2.318557777404785,
+   "seconds": 12.88490915298462
+  },
+  {
+   "step": 500,
+   "train": 2.2967042922973633,
+   "val": 2.3097680377960206,
+   "seconds": 20.062689065933228
+  },
+  {
+   "step": 750,
+   "train": 2.3513200283050537,
+   "val": 2.3076698637008666,
+   "seconds": 26.828195095062256
+  },
+  {
+   "step": 1000,
+   "train": 2.290465831756592,
+   "val": 2.307085757255554,
+   "seconds": 33.818586111068726
+  },
+  {
+   "step": 1250,
+   "train": 2.302527904510498,
+   "val": 2.304075365066528,
+   "seconds": 40.38824796676636
+  },
+  {
+   "step": 1500,
+   "train": 2.2931339740753174,
+   "val": 2.3036749458312986,
+   "seconds": 46.02806806564331
+  },
+  {
+   "step": 1750,
+   "train": 2.2687594890594482,
+   "val": 2.3010140895843505,
+   "seconds": 51.42524290084839
+  },
+  {
+   "step": 2000,
+   "train": 2.297443389892578,
+   "val": 2.3006852054595948,
+   "seconds": 57.005106925964355
+  },
+  {
+   "step": 2250,
+   "train": 2.2687766551971436,
+   "val": 2.2992907667160036,
+   "seconds": 62.39715003967285
+  },
+  {
+   "step": 2500,
+   "train": 2.2923450469970703,
+   "val": 2.298253436088562,
+   "seconds": 67.83060097694397
+  },
+  {
+   "step": 2750,
+   "train": 2.278745174407959,
+   "val": 2.297427339553833,
+   "seconds": 73.10835289955139
+  },
+  {
+   "step": 3000,
+   "train": 2.306955575942993,
+   "val": 2.297418546676636,
+   "seconds": 78.17885684967041
+  }
+ ],
+ "nan_step": null,
+ "seconds": 78.17938590049744,
+ "final_val": 2.297418546676636,
+ "sample": "Once upon a timerned. chid ute On m led imoupe Thange lofthap s g fo wandelurofuloomel biat antor ge sitod Here nd arm mesthe wake they a t \nOnire the I d ply, ta and w, s t ollengsthind, hed s ckedapo foustt an. Tistous wo ine s t Tile \"\nThe fun any wome ban it brand fe hay the angasar hed asast ats he ran are, to"
+}

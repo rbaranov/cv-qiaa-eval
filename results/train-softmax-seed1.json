@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "softmax",
+  "seed": 1,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.001,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 816896,
+ "attention_params": 262656,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.715183258056641,
+   "val": 4.693532991409302,
+   "seconds": 1.4214398860931396
+  },
+  {
+   "step": 250,
+   "train": 1.6017651557922363,
+   "val": 1.481794958114624,
+   "seconds": 13.043174743652344
+  },
+  {
+   "step": 500,
+   "train": 1.2194552421569824,
+   "val": 1.2662149238586426,
+   "seconds": 23.558074712753296
+  },
+  {
+   "step": 750,
+   "train": 1.0603437423706055,
+   "val": 1.178599317073822,
+   "seconds": 33.52301383018494
+  },
+  {
+   "step": 1000,
+   "train": 1.1376020908355713,
+   "val": 1.1242088186740875,
+   "seconds": 44.62765884399414
+  },
+  {
+   "step": 1250,
+   "train": 0.9954668283462524,
+   "val": 1.0886061787605286,
+   "seconds": 57.06433463096619
+  },
+  {
+   "step": 1500,
+   "train": 1.0687215328216553,
+   "val": 1.0606190931797028,
+   "seconds": 68.34888076782227
+  },
+  {
+   "step": 1750,
+   "train": 1.0315276384353638,
+   "val": 1.0348013377189635,
+   "seconds": 80.71845579147339
+  },
+  {
+   "step": 2000,
+   "train": 0.9909316897392273,
+   "val": 1.0151365792751312,
+   "seconds": 92.09577584266663
+  },
+  {
+   "step": 2250,
+   "train": 1.02888822555542,
+   "val": 0.9967651796340943,
+   "seconds": 102.56745600700378
+  },
+  {
+   "step": 2500,
+   "train": 0.898888349533081,
+   "val": 0.9859648621082306,
+   "seconds": 113.42812180519104
+  },
+  {
+   "step": 2750,
+   "train": 0.984678328037262,
+   "val": 0.9785840666294098,
+   "seconds": 124.14271688461304
+  },
+  {
+   "step": 3000,
+   "train": 0.8945785760879517,
+   "val": 0.9772598433494568,
+   "seconds": 134.58579468727112
+  }
+ ],
+ "nan_step": null,
+ "seconds": 134.5866837501526,
+ "final_val": 0.9772598433494568,
+ "sample": "Once upon a time, there was a big monster with Timmy was not too hard behind of them with the pond. \nHis dad said, \"Mmm, scared and started to stay with his friend, but it was tiny to find a small carrot with an toys on the bee carefully answered it up and started to play with her garden. \nThe two friend and wanted"
+}

@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "cvqiaa",
+  "seed": 0,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.001,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 735488,
+ "attention_params": 181248,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.688850402832031,
+   "val": 4.675118579864502,
+   "seconds": 23.91055202484131
+  },
+  {
+   "step": 250,
+   "train": 2.257777690887451,
+   "val": 2.254600329399109,
+   "seconds": 198.15982007980347
+  },
+  {
+   "step": 500,
+   "train": 2.097555637359619,
+   "val": 2.104773230552673,
+   "seconds": 374.55383801460266
+  },
+  {
+   "step": 750,
+   "train": 1.9167002439498901,
+   "val": 1.869216763973236,
+   "seconds": 534.8854060173035
+  },
+  {
+   "step": 1000,
+   "train": 1.6468244791030884,
+   "val": 1.672277500629425,
+   "seconds": 712.858638048172
+  },
+  {
+   "step": 1250,
+   "train": 1.5662705898284912,
+   "val": 1.549124846458435,
+   "seconds": 915.2068889141083
+  },
+  {
+   "step": 1500,
+   "train": 1.3856979608535767,
+   "val": 1.44234188079834,
+   "seconds": 1082.7789120674133
+  },
+  {
+   "step": 1750,
+   "train": 1.3145301342010498,
+   "val": 1.3773522877693176,
+   "seconds": 1287.12273812294
+  },
+  {
+   "step": 2000,
+   "train": 1.3572638034820557,
+   "val": 1.334034912586212,
+   "seconds": 1486.7125449180603
+  },
+  {
+   "step": 2250,
+   "train": 1.29408860206604,
+   "val": 1.2996405959129333,
+   "seconds": 1654.4533290863037
+  },
+  {
+   "step": 2500,
+   "train": 1.291296362876892,
+   "val": 1.2749170565605163,
+   "seconds": 1823.9377410411835
+  },
+  {
+   "step": 2750,
+   "train": 1.2368155717849731,
+   "val": 1.2628445625305176,
+   "seconds": 1988.5179271697998
+  },
+  {
+   "step": 3000,
+   "train": 1.2442456483840942,
+   "val": 1.2597601914405823,
+   "seconds": 2143.7547030448914
+  }
+ ],
+ "nan_step": null,
+ "seconds": 2143.7558410167694,
+ "final_val": 1.2597601914405823,
+ "sample": "Once upon a time, there was a big named it feel safe. Then alte go of be playing out the and pullen with his to cricrmbles. But were to as quee to the cool. The and some some leep stay dad anysy found the stay so and onsid. She saw sill \"Whe fun!\" Jom was said. Dotanted What they bear and shest to the big trare, to"
+}

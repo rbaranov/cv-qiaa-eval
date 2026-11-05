@@ -1,0 +1,69 @@
+{
+ "paper_demo_losses": {
+  "cvqiaa": [
+   2.4119,
+   2.0471,
+   1.7789,
+   1.6029,
+   1.4435
+  ],
+  "softmax": [
+   2.5572,
+   2.1697,
+   1.9238,
+   1.7123,
+   1.5135
+  ],
+  "none": [
+   2.4626,
+   2.1013,
+   1.9182,
+   1.7951,
+   1.7173
+  ]
+ },
+ "overlap_ctx128": {
+  "sigma0=4.0": {
+   "causal_pairs": 8256,
+   "pairs_with_zero_weight": 0,
+   "first_token_that_cannot_see_itself": null,
+   "distance_to_strongest_key_for_token": {
+    "10": 5,
+    "30": 15,
+    "60": 36,
+    "127": 127
+   },
+   "token127_overlap_by_distance": {
+    "0": 0.0006146923406049609,
+    "1": 0.0006480927113443613,
+    "5": 0.0007984103867784142,
+    "20": 0.0016554435715079308,
+    "60": 0.006716246251016855,
+    "127": 0.013446679338812828
+   }
+  },
+  "sigma0=0.5": {
+   "causal_pairs": 8256,
+   "pairs_with_zero_weight": 147,
+   "first_token_that_cannot_see_itself": 101,
+   "distance_to_strongest_key_for_token": {
+    "10": 0,
+    "30": 0,
+    "60": 30,
+    "127": 74
+   },
+   "token127_overlap_by_distance": {
+    "0": 0.0,
+    "1": 0.0,
+    "5": 8.110313045368328e-22,
+    "20": 0.0016554435715079308,
+    "60": 0.04135562479496002,
+    "127": 0.034338127821683884
+   }
+  }
+ },
+ "cpu_nan_grad_params": {
+  "with_nan": 139,
+  "total": 172
+ }
+}
