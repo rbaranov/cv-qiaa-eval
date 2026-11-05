@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "born",
+  "seed": 0,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.003,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 816896,
+ "attention_params": 262656,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.7007341384887695,
+   "val": 4.66261134147644,
+   "seconds": 2.6967880725860596
+  },
+  {
+   "step": 250,
+   "train": 1.5394660234451294,
+   "val": 1.5739888334274292,
+   "seconds": 26.681204080581665
+  },
+  {
+   "step": 500,
+   "train": 1.2475357055664062,
+   "val": 1.316931118965149,
+   "seconds": 53.61810302734375
+  },
+  {
+   "step": 750,
+   "train": 1.2510454654693604,
+   "val": 1.2148578238487244,
+   "seconds": 95.79220509529114
+  },
+  {
+   "step": 1000,
+   "train": 1.1360292434692383,
+   "val": 1.1435745525360108,
+   "seconds": 126.67227816581726
+  },
+  {
+   "step": 1250,
+   "train": 1.070013403892517,
+   "val": 1.086682176589966,
+   "seconds": 154.33572101593018
+  },
+  {
+   "step": 1500,
+   "train": 1.0171923637390137,
+   "val": 1.0506548547744752,
+   "seconds": 193.58055925369263
+  },
+  {
+   "step": 1750,
+   "train": 0.9553161263465881,
+   "val": 1.0164683365821838,
+   "seconds": 318.77896189689636
+  },
+  {
+   "step": 2000,
+   "train": 1.029598355293274,
+   "val": 0.9945772051811218,
+   "seconds": 349.28251814842224
+  },
+  {
+   "step": 2250,
+   "train": 0.9691801071166992,
+   "val": 0.9675607287883758,
+   "seconds": 380.3889510631561
+  },
+  {
+   "step": 2500,
+   "train": 0.9576308727264404,
+   "val": 0.9515415680408478,
+   "seconds": 411.14469814300537
+  },
+  {
+   "step": 2750,
+   "train": 0.9180389046669006,
+   "val": 0.9414483499526978,
+   "seconds": 431.4262971878052
+  },
+  {
+   "step": 3000,
+   "train": 0.8907827138900757,
+   "val": 0.9394117879867554,
+   "seconds": 459.1751081943512
+  }
+ ],
+ "nan_step": null,
+ "seconds": 459.17643213272095,
+ "final_val": 0.9394117879867554,
+ "sample": "Once upon a time, there was a boy named Timmy. Timmy loved to play outside in the oats beautiful with it. One day, Lily went to the stovel queety started to clean and waited on the table. They didn't lift the best in the work. The bird was so proud of his balloons and felt sorry. From that day on, the bird was sad "
+}

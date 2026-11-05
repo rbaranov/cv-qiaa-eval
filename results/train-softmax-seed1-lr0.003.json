@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "softmax",
+  "seed": 1,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.003,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 816896,
+ "attention_params": 262656,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.715183258056641,
+   "val": 4.674406490325928,
+   "seconds": 1.5780680179595947
+  },
+  {
+   "step": 250,
+   "train": 1.492281198501587,
+   "val": 1.3867411923408508,
+   "seconds": 16.864795923233032
+  },
+  {
+   "step": 500,
+   "train": 1.1751705408096313,
+   "val": 1.2138923192024231,
+   "seconds": 30.653743028640747
+  },
+  {
+   "step": 750,
+   "train": 1.016844391822815,
+   "val": 1.1367370009422302,
+   "seconds": 43.74484992027283
+  },
+  {
+   "step": 1000,
+   "train": 1.0893217325210571,
+   "val": 1.0947621822357179,
+   "seconds": 55.71368098258972
+  },
+  {
+   "step": 1250,
+   "train": 0.953778862953186,
+   "val": 1.0574336802959443,
+   "seconds": 68.46643781661987
+  },
+  {
+   "step": 1500,
+   "train": 1.023036241531372,
+   "val": 1.021074696779251,
+   "seconds": 80.10659003257751
+  },
+  {
+   "step": 1750,
+   "train": 0.9976935982704163,
+   "val": 0.9979994320869445,
+   "seconds": 94.20563673973083
+  },
+  {
+   "step": 2000,
+   "train": 0.9449130296707153,
+   "val": 0.9727519154548645,
+   "seconds": 107.03941988945007
+  },
+  {
+   "step": 2250,
+   "train": 0.9817155003547668,
+   "val": 0.9511960065364837,
+   "seconds": 119.6447069644928
+  },
+  {
+   "step": 2500,
+   "train": 0.8558496236801147,
+   "val": 0.9377528858184815,
+   "seconds": 131.99113178253174
+  },
+  {
+   "step": 2750,
+   "train": 0.9328857660293579,
+   "val": 0.9297669863700867,
+   "seconds": 144.99722290039062
+  },
+  {
+   "step": 3000,
+   "train": 0.8517104983329773,
+   "val": 0.9277738273143769,
+   "seconds": 157.4650638103485
+  }
+ ],
+ "nan_step": null,
+ "seconds": 157.46584296226501,
+ "final_val": 0.9277738273143769,
+ "sample": "Once upon a time, there was a boy named Timmy. Timmy loved to play outside in the oven beautiful with it. One day, Lily went to the park and they searched for heart, but she knew matched, her mom and dad were angry. Lily was so happy and hesitate and would stop and started to come inside. She was so excited, but sh"
+}

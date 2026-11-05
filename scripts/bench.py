@@ -2,13 +2,17 @@
 
 Memory: bytes of tensors autograd saves for backward, counted with
 saved_tensors_hooks on CPU (exact and independent of the device's allocator).
+Each storage is counted once: autograd can save one buffer under several
+shapes (naive softmax saves its output as [B, H, T, T] and as [B*H, T, T]);
+counting by shape, as the first version of this script did, counted it twice.
 Peak: the largest temporary tensor CV-QIAA builds in the forward pass,
 B x T x T x grid_size float32, computed from shapes.
 Time: forward + backward on MPS (Apple GPU), mean of 3 runs after a warm-up.
 
 Variants: sdpa (PyTorch scaled_dot_product_attention, the training baseline),
 naive softmax (explicit T x T matrix, masked_fill + softmax), born (softmax
-replaced by |s|^2 / sum |s|^2), cvqiaa (the paper's layer).
+replaced by |s|^2 / sum |s|^2), cvqiaa (the paper's layer), cvqiaa2 (the
+authors' grid-free version 2, AnalyticalCVQIAALayer).
 """
 import json
 import math
@@ -21,6 +25,7 @@ import torch
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "src"))
 from models import StandardAttention, rope  # noqa: E402
+from paper_v2_replacement import AnalyticalCVQIAALayer  # noqa: E402
 from wavellm_fixed import MultiHeadUnifiedQuantumAttention  # noqa: E402
 
 
@@ -34,7 +39,14 @@ class NaiveSoftmax(StandardAttention):
         return self.out((torch.softmax(s, -1) @ v).transpose(1, 2).reshape(B, T, C))
 
 
+class V2(AnalyticalCVQIAALayer):
+    def forward(self, x, positions=None):
+        return super().forward(x)
+
+
 def make(kind):
+    if kind == "cvqiaa2":
+        return V2(D, H)
     if kind == "cvqiaa":
         return MultiHeadUnifiedQuantumAttention(D, H)
     if kind == "naive softmax":
@@ -46,7 +58,8 @@ def saved_mb(layer, x, pos):
     seen = {}
 
     def pack(t):
-        seen[(t.data_ptr(), t.dtype, tuple(t.shape))] = t.numel() * t.element_size()
+        storage = t.untyped_storage()
+        seen[storage.data_ptr()] = storage.nbytes()
         return t
 
     with torch.autograd.graph.saved_tensors_hooks(pack, lambda t: t):
@@ -55,7 +68,7 @@ def saved_mb(layer, x, pos):
 
 
 B, D, H, GRID = 4, 128, 4, 64
-KINDS = ["sdpa", "naive softmax", "born", "cvqiaa"]
+KINDS = ["sdpa", "naive softmax", "born", "cvqiaa", "cvqiaa2"]
 rows = []
 for T in [256, 512, 1024]:
     for kind in KINDS:

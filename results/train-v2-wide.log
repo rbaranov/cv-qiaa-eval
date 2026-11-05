@@ -1,0 +1,61 @@
+cvqiaa2-wide seed 1 step 1: train 4.6761 val 4.6378 (6.691 bpc) 2s
+cvqiaa2-wide seed 1 step 250: train 1.9018 val 1.7707 (2.555 bpc) 19s
+cvqiaa2-wide seed 1 step 500: train 1.2648 val 1.3259 (1.913 bpc) 37s
+cvqiaa2-wide seed 1 step 750: train 1.0490 val 1.1747 (1.695 bpc) 55s
+cvqiaa2-wide seed 1 step 1000: train 1.1082 val 1.1044 (1.593 bpc) 74s
+cvqiaa2-wide seed 1 step 1250: train 0.9579 val 1.0573 (1.525 bpc) 95s
+cvqiaa2-wide seed 1 step 1500: train 1.0133 val 1.0207 (1.473 bpc) 113s
+cvqiaa2-wide seed 1 step 1750: train 0.9837 val 0.9903 (1.429 bpc) 130s
+cvqiaa2-wide seed 1 step 2000: train 0.9357 val 0.9643 (1.391 bpc) 146s
+cvqiaa2-wide seed 1 step 2250: train 0.9756 val 0.9421 (1.359 bpc) 164s
+cvqiaa2-wide seed 1 step 2500: train 0.8447 val 0.9263 (1.336 bpc) 181s
+cvqiaa2-wide seed 1 step 2750: train 0.9090 val 0.9167 (1.322 bpc) 198s
+cvqiaa2-wide seed 1 step 3000: train 0.8385 val 0.9148 (1.320 bpc) 216s
+Once upon a time, there was a boy named Timmy. Timmy loved to play outside in the oven before all over the button in the store. He thought it was still cold and a huge.
+The police started to see who pretty to the side of the football of the window. The bunny was scared and she could see his hand. She had a jobby to
+cvqiaa2-wide seed 2 step 1: train 4.7125 val 4.6746 (6.744 bpc) 2s
+cvqiaa2-wide seed 2 step 250: train 1.8183 val 1.7741 (2.559 bpc) 19s
+cvqiaa2-wide seed 2 step 500: train 1.3082 val 1.3091 (1.889 bpc) 40s
+cvqiaa2-wide seed 2 step 750: train 1.2372 val 1.1875 (1.713 bpc) 58s
+cvqiaa2-wide seed 2 step 1000: train 1.1353 val 1.1097 (1.601 bpc) 75s
+cvqiaa2-wide seed 2 step 1250: train 1.0656 val 1.0630 (1.534 bpc) 92s
+cvqiaa2-wide seed 2 step 1500: train 0.9864 val 1.0250 (1.479 bpc) 111s
+cvqiaa2-wide seed 2 step 1750: train 0.9248 val 0.9955 (1.436 bpc) 133s
+cvqiaa2-wide seed 2 step 2000: train 0.8986 val 0.9705 (1.400 bpc) 152s
+cvqiaa2-wide seed 2 step 2250: train 0.9219 val 0.9463 (1.365 bpc) 172s
+cvqiaa2-wide seed 2 step 2500: train 0.8721 val 0.9321 (1.345 bpc) 202s
+cvqiaa2-wide seed 2 step 2750: train 0.8885 val 0.9231 (1.332 bpc) 223s
+cvqiaa2-wide seed 2 step 3000: train 0.9132 val 0.9211 (1.329 bpc) 241s
+Once upon a time, there was a boy named Timmy. Timmy loved to play outside up the ball back and ran to the bush in the mess. He was very sad and sad and dreamed a lot of fun. They started to see what it was time to stop the bee careful with them, but when she was cool from the cookies, but he couldn't help to buy i
+softmax-env-wide seed 0 step 1: train 4.7007 val 4.6649 (6.730 bpc) 1s
+softmax-env-wide seed 0 step 250: train 1.6642 val 1.7091 (2.466 bpc) 13s
+softmax-env-wide seed 0 step 500: train 1.2364 val 1.2829 (1.851 bpc) 28s
+softmax-env-wide seed 0 step 750: train 1.2095 val 1.1671 (1.684 bpc) 38s
+softmax-env-wide seed 0 step 1000: train 1.1092 val 1.1032 (1.592 bpc) 46s
+softmax-env-wide seed 0 step 1250: train 1.0380 val 1.0539 (1.520 bpc) 59s
+softmax-env-wide seed 0 step 1500: train 0.9900 val 1.0181 (1.469 bpc) 68s
+softmax-env-wide seed 0 step 1750: train 0.9293 val 0.9920 (1.431 bpc) 78s
+softmax-env-wide seed 0 step 2000: train 0.9897 val 0.9676 (1.396 bpc) 88s
+softmax-env-wide seed 0 step 2250: train 0.9469 val 0.9458 (1.364 bpc) 96s
+softmax-env-wide seed 0 step 2500: train 0.9481 val 0.9303 (1.342 bpc) 104s
+softmax-env-wide seed 0 step 2750: train 0.9000 val 0.9216 (1.330 bpc) 113s
+softmax-env-wide seed 0 step 3000: train 0.8710 val 0.9197 (1.327 bpc) 121s
+Once upon a time, there was a boy named Timmy. Timmy loved to play outside in the oven beautiful with it. One day, Lily went to the store to get back to her friend, but it was too strong. They did not want to be careful.
+They thank you for someone with the store and wanted to come inside. He was sad, but he was wal
+softmax-env-wide seed 1 step 1: train 4.7164 val 4.6749 (6.744 bpc) 1s
+softmax-env-wide seed 1 step 250: train 1.8302 val 1.6935 (2.443 bpc) 10s
+softmax-env-wide seed 1 step 500: train 1.2344 val 1.2870 (1.857 bpc) 18s
+softmax-env-wide seed 1 step 750: train 1.0446 val 1.1553 (1.667 bpc) 26s
+softmax-env-wide seed 1 step 1000: train 1.0903 val 1.0983 (1.585 bpc) 35s
+softmax-env-wide seed 1 step 1250: train 0.9675 val 1.0540 (1.521 bpc) 43s
+softmax-env-wide seed 1 step 1500: train 1.0123 val 1.0142 (1.463 bpc) 51s
+softmax-env-wide seed 1 step 1750: train 0.9783 val 0.9868 (1.424 bpc) 60s
+softmax-env-wide seed 1 step 2000: train 0.9313 val 0.9623 (1.388 bpc) 68s
+softmax-env-wide seed 1 step 2250: train 0.9702 val 0.9410 (1.358 bpc) 76s
+softmax-env-wide seed 1 step 2500: train 0.8450 val 0.9271 (1.337 bpc) 85s
+softmax-env-wide seed 1 step 2750: train 0.9267 val 0.9181 (1.325 bpc) 93s
+softmax-env-wide seed 1 step 3000: train 0.8508 val 0.9163 (1.322 bpc) 101s
+Once upon a time, there was a boy named Timmy. Timmy loved to play outside in the bathroom with a great of cutting arm and he was very happy!
+<|endoftext|>
+Once upon a time, there was a little girl who loved to flying her wise and think "What is your book."
+The fire was playing with her bad and the swing and wanted

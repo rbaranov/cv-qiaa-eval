@@ -1,0 +1,100 @@
+{
+ "args": {
+  "kind": "cvqiaa2-noenv",
+  "seed": 0,
+  "steps": 3000,
+  "batch": 32,
+  "ctx": 128,
+  "lr": 0.003,
+  "eval_every": 250,
+  "eval_batches": 50,
+  "device": "mps"
+ },
+ "vocab": 98,
+ "params": 950544,
+ "attention_params": 396304,
+ "curve": [
+  {
+   "step": 1,
+   "train": 4.788585662841797,
+   "val": 4.752497425079346,
+   "seconds": 4.226294994354248
+  },
+  {
+   "step": 250,
+   "train": 2.090088367462158,
+   "val": 2.1069799566268923,
+   "seconds": 52.017431020736694
+  },
+  {
+   "step": 500,
+   "train": 1.876478910446167,
+   "val": 1.9183459186553955,
+   "seconds": 81.252681016922
+  },
+  {
+   "step": 750,
+   "train": 1.7317726612091064,
+   "val": 1.6500849652290344,
+   "seconds": 122.14232611656189
+  },
+  {
+   "step": 1000,
+   "train": 1.4308327436447144,
+   "val": 1.4536333441734315,
+   "seconds": 159.78738713264465
+  },
+  {
+   "step": 1250,
+   "train": 1.3145896196365356,
+   "val": 1.3434210515022278,
+   "seconds": 187.07581901550293
+  },
+  {
+   "step": 1500,
+   "train": 1.230774998664856,
+   "val": 1.2764342474937438,
+   "seconds": 218.06758499145508
+  },
+  {
+   "step": 1750,
+   "train": 1.1513006687164307,
+   "val": 1.2195489835739135,
+   "seconds": 248.759507894516
+  },
+  {
+   "step": 2000,
+   "train": 1.2072111368179321,
+   "val": 1.1819181442260742,
+   "seconds": 282.14091396331787
+  },
+  {
+   "step": 2250,
+   "train": 1.1612879037857056,
+   "val": 1.1476587653160095,
+   "seconds": 317.00691199302673
+  },
+  {
+   "step": 2500,
+   "train": 1.1596651077270508,
+   "val": 1.122563214302063,
+   "seconds": 347.0611152648926
+  },
+  {
+   "step": 2750,
+   "train": 1.09938645362854,
+   "val": 1.1094737267494201,
+   "seconds": 371.83581709861755
+  },
+  {
+   "step": 3000,
+   "train": 1.0919917821884155,
+   "val": 1.1065641725063324,
+   "seconds": 396.9519600868225
+  }
+ ],
+ "nan_step": null,
+ "seconds": 396.9531571865082,
+ "final_val": 1.1065641725063324,
+ "sample": "Once upon a time, there was a boy named Timmy. Timmy was not to go of the living a shiny and pull get in his toy. Timmy was very excited and to rest and dark who happpining to thems diffing her could refriends.\n<|endoftext|>\n\nOnce there was a little girl named Jack. He was so happy and she was so excited and when h"
+}
