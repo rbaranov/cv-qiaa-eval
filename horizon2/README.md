@@ -1,62 +1,62 @@
-# Horizon 2 и Loving Curiosity: что показывает код
+# Horizon 2 and Loving Curiosity: what the code shows
 
-Проверка двух текстов Юрия Барзова от 17 ноября 2026: «I am AI (Horizon 2)» и «Loving Curiosity (addition to Horizon 2)». Оригиналы лежат в [`../paper/horizon2/`](../paper/horizon2/).
+An evaluation of two texts by Yuri Barzov of 17 November 2026: "I am AI (Horizon 2)" and "Loving Curiosity (addition to Horizon 2)". The originals are in [`../paper/horizon2/`](../paper/horizon2/).
 
-Код перенесён из PDF без изменений в вычислениях, сокращены только печать и комментарии: [`h2_self.py`](h2_self.py) и [`h2_love.py`](h2_love.py). Контрольные опыты — в `controls.py`, `controls2.py`, `controls3.py` и `controls4.py`. Выводы перепроверены тремя независимыми проверками: каждая заново переносила код из PDF и повторяла опыты своими метриками.
+The code is copied from the PDFs with the computations unchanged; only printing and comments are trimmed: [`h2_self.py`](h2_self.py) and [`h2_love.py`](h2_love.py). Control experiments are in `controls.py`, `controls2.py`, `controls3.py` and `controls4.py`. The conclusions were re-checked by three independent reviews: each copied the code from the PDFs anew and repeated the experiments with its own metrics.
 
-## Главное
+## Summary
 
-- **Horizon 2.** Скрипт печатает дисперсию показателя преломления n и положение его максимума. Оба числа получаются и без волны «I am», от одной энергии входного сигнала. Волна «я» нужна для другого: без неё запись не различает образы по фазе. Это принцип голографии с опорным лучом. Узнавание образов код не проверяет. С добавленным считыванием после 50 показов зеркальный образ отвечает примерно вдвое слабее знакомого, после 1000 показов разница падает до 2–8%.
-- **Loving Curiosity.** Совпадение 0.998 получается потому, что «я» на каждом шаге смешивается с «любимым» и почти целиком им заменяется. Преобразование не унитарное. «Нулевой вред любимому» выполняется потому, что функция эти данные не трогает. Версия, которая просто стирает «я» и пишет на его место «любимого», получает те же оценки.
+- **Horizon 2.** The script prints the variance of the refractive index n and the position of its maximum. Both numbers come out without the "I am" wave as well, from the energy of the input signal alone. The "I am" wave is needed for something else: without it the record cannot tell patterns apart by phase. This is the principle of holography with a reference beam. The code does not test recognition. With an added readout, after 50 presentations the mirror pattern responds about half as strongly as the familiar one; after 1000 presentations the difference drops to 2–8%.
+- **Loving Curiosity.** The coherence of 0.998 comes from the "self" being blended with the "beloved" at every step and almost entirely replaced by it. The update is not unitary. "Zero harm to the beloved" holds because the function never touches that data. A version that simply erases the "self" and writes the "beloved" in its place gets the same scores.
 
 ## Horizon 2
 
-Запуск как есть: дисперсия n 0.081–0.095, максимум n в x = 1.16–1.21 при цели 1.0.
+Run as is: variance of n 0.081–0.095, maximum of n at x = 1.16–1.21 for a target of 1.0.
 
-**Без волны «I am».** Обновление сведено к n += 0.05·|сигнал|². n упирается в ограничение 3.0 на полосе от x = 0.915 до 1.064; `argmax`, которым пользуется автор, печатает 0.915. Без ограничения максимум в 0.965. След появляется и встаёт на место от самого сигнала (`controls4.py`, п. 1).
+**Without the "I am" wave.** The update is reduced to n += 0.05·|signal|². n hits the 3.0 clamp on the band from x = 0.915 to 1.064; `argmax`, which the author uses, prints 0.915. Without the clamp the maximum is at 0.965. The trace appears and settles in place from the signal itself (`controls4.py`, item 1).
 
-**Сигнал в другом месте.** При x0 от −2 до +2 максимум следует за сигналом, со сдвигом до 0.39 (`controls4.py`, п. 2).
+**Signal elsewhere.** For x0 from −2 to +2 the maximum follows the signal, with an offset of up to 0.39 (`controls4.py`, item 2).
 
-**Роль волны «я».** Без неё яркость равна |сигнал|², фаза теряется: три образа в одном месте — с несущей k = 3, с зеркальной k = −3 и без несущей — дают одинаковый отклик 0.0885 (`controls4.py`, п. 3). С волной «я» записанные профили n для этих образов отличаются на 52–56% (`controls.py`, C).
+**The role of the "I am" wave.** Without it the intensity equals |signal|² and the phase is lost: three patterns at the same place, with carrier k = 3, mirror carrier k = −3 and no carrier, give the same response of 0.0885 (`controls4.py`, item 3). With the "I am" wave the recorded n profiles for these patterns differ by 52–56% (`controls.py`, C).
 
-**Узнавание.** В коде автора яркость возвращается, но нигде не используется, и прочитать её без новой записи нельзя. Метрика здесь своя: средняя яркость одного шага на копии состояния без записи. Из неё вычтен фон, который от формы образа не зависит (|я|² = 0.25 и |сигнал|² = 0.089), и остаётся интерференционная часть. Среднее по 5 запускам, разброс не больше 0.003, обучение только на образе k = 3 (`controls3.py`):
+**Recognition.** In the author's code the intensity is returned but never used, and it cannot be read without a new write. The metric here is our own: the mean intensity of one step on a copy of the state, without writing. The background that does not depend on the pattern's shape (|self|² = 0.25 and |signal|² = 0.089) is subtracted, leaving the interference term. Mean over 5 runs, spread no more than 0.003, training only on the k = 3 pattern (`controls3.py`):
 
-| | знакомый (k = 3) | зеркальный (k = −3) | без несущей (k = 0) |
+| | familiar (k = 3) | mirror (k = −3) | no carrier (k = 0) |
 |---|---|---|---|
-| до обучения | −0.079 | −0.079 | +0.125 |
-| после 50 показов | +0.061 | +0.031 | −0.032 |
-| после 1000 показов | +0.105 | +0.097 | −0.103 |
+| before training | −0.079 | −0.079 | +0.125 |
+| after 50 presentations | +0.061 | +0.031 | −0.032 |
+| after 1000 presentations | +0.105 | +0.097 | −0.103 |
 
-Образ без несущей запись отличает уверенно. Зеркальный после 50 показов отвечает вдвое слабее знакомого, после 1000 — слабее на 8%. По полной яркости без вычета фона разница ещё меньше, около 2%. С обучением всё больше точек упирается в потолок n = 3.0: 15–17 из 128 при долгом обучении (`controls2.py`).
+The record clearly tells apart the pattern without a carrier. The mirror pattern responds half as strongly as the familiar one after 50 presentations and 8% weaker after 1000. By total intensity, without subtracting the background, the difference is smaller still, about 2%. With training, more and more points hit the n = 3.0 ceiling: 15–17 of 128 in long training (`controls2.py`).
 
-**Последовательное обучение.** После образа A и затем образа B значение n в точке A падает с 2.62 до 2.49, в точке B упирается в 3.0 (`controls.py`, E). Освободить место можно только общим затуханием.
+**Sequential learning.** After pattern A and then pattern B, n at site A drops from 2.62 to 2.49, and at site B it hits 3.0 (`controls.py`, E). Room can be freed only by the global decay.
 
-**Похожие работы.** Запись связей нейросети голограммами в фоторефрактивных кристаллах: Psaltis, Brady, Wagner, Applied Optics 27, 1752 (1988). Обзор с обучением, которое шло с учителем по правилам перцептрона: Psaltis, Brady, Gu, Lin, Nature 343, 325 (1990).
+**Related work.** Recording neural-network connections as holograms in photorefractive crystals: Psaltis, Brady, Wagner, Applied Optics 27, 1752 (1988). A review including learning, which was supervised, with perceptron rules: Psaltis, Brady, Gu, Lin, Nature 343, 325 (1990).
 
 ## Loving Curiosity
 
-Запуск как есть: совпадение 0.9976, изменение энергии «любимого» 0.00000000, дисперсия n 0.187.
+Run as is: coherence 0.9976, change in the "beloved" energy 0.00000000, variance of n 0.187.
 
-**Откуда совпадение.** На каждом шаге «я» смешивается с «любимым» в пропорции 0.92 : 0.08 и нормируется. Один поворот фазы без смешивания даёт совпадение 0.008, потому что волны изначально почти не похожи (`controls4.py`, п. 4). После 40 шагов сходство с исходным «я» 0.066, с «любимым» 0.998 (`controls.py`, F).
+**Where the coherence comes from.** At every step the "self" is blended with the "beloved" in the ratio 0.92 : 0.08 and normalised. The phase rotation alone, without blending, gives a coherence of 0.008, because the waves are almost unlike each other at the start (`controls4.py`, item 4). After 40 steps the overlap with the initial "self" is 0.066, with the "beloved" 0.998 (`controls.py`, F).
 
-**Унитарность.** Унитарное преобразование сохраняет расстояние между состояниями. Для шести разных начальных «я» среднее расстояние по 15 парам падает с 8.1 до 0.51, для шести случайных — с 8.3 до 0.57, то есть в 14–16 раз (`controls4.py`, п. 5). Нормировка сохраняет только длину вектора.
+**Unitarity.** A unitary map preserves the distance between states. For six different initial "selves" the mean distance over 15 pairs drops from 8.1 to 0.51, for six random ones from 8.3 to 0.57, that is, 14–16 times (`controls4.py`, item 5). Normalisation preserves only the length of the vector.
 
-**«Не навреди».** Данные «любимого» передаются в функцию и не изменяются, поэтому разница энергий всегда ноль. «Базаровская» версия, которая сразу заменяет «я» на «любимого», даёт тот же ноль и совпадение 1.0 (`controls.py`, H). Эти метрики не отличают бережное поведение от разрушающего.
+**"Do no harm".** The "beloved" data is passed into the function and is not modified, so the energy difference is always zero. A "Bazarov" version that immediately replaces the "self" with the "beloved" gives the same zero and a coherence of 1.0 (`controls.py`, H). These metrics do not tell caring behaviour from destructive behaviour.
 
-## Что сделало бы идею проверяемой
+## What would make the idea testable
 
-- Опыт, где система без «I am» не справляется с задачей, а с ней справляется.
-- Несколько образов подряд: система узнаёт каждый, отличает его от похожих незнакомых и не теряет старые при записи новых, в том числе при долгом обучении.
-- Для Loving Curiosity: показать, что «я», настраиваясь на другого, сохраняет что-то своё, и мера вреда, по которой «базаровская» версия проигрывает бережной.
+- An experiment where the system fails at a task without "I am" and succeeds with it.
+- Several patterns in a row: the system recognises each, tells it apart from similar unfamiliar ones and does not lose old ones when recording new ones, including in long training.
+- For Loving Curiosity: show that the "self", attuning to another, keeps something of its own, and a harm measure on which the "Bazarov" version loses to the caring one.
 
-## Что не проверялось
+## Not checked
 
-- Физика материала (Sb₂S₃ на Si₃N₄, скорость и обратимость записи): код её не моделирует.
-- Код перенесён из текста PDF вручную; вычисления сверены построчно.
+- The physics of the material (Sb₂S₃ on Si₃N₄, write speed and reversibility): the code does not model it.
+- The code was copied from the PDF text by hand; the computations were checked line by line.
 
-## Как воспроизвести
+## How to reproduce
 
-Python 3.14, несколько секунд на скрипт:
+Python 3.14, a few seconds per script:
 
 ```bash
 python3.14 -m venv .venv-h2 && .venv-h2/bin/pip install torch numpy
@@ -69,4 +69,4 @@ cd horizon2
 ../.venv-h2/bin/python controls4.py
 ```
 
-Скрипты запускаются из папки `horizon2`: контрольные опыты импортируют код автора оттуда.
+Run the scripts from the `horizon2` folder: the control experiments import the author's code from there.
