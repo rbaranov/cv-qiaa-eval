@@ -1,13 +1,13 @@
-| Вариант | Запусков | Val loss (nats) | Бит на символ | Секунд на 3000 шагов | Параметров attention | NaN |
+| Variant | Runs | Val loss (nats) | Bits per char | Seconds per 3000 steps | Attention params | NaN |
 |---|---|---|---|---|---|---|
 | softmax | 3 | 0.974 ± 0.003 | 1.406 | 130 | 262,656 | 0 |
 | born | 3 | 1.034 ± 0.001 | 1.492 | 167 | 262,656 | 0 |
 | cvqiaa | 2 | 1.284 ± 0.035 | 1.853 | 2257 | 181,248 | 0 |
 | none | 3 | 2.298 ± 0.000 | 3.315 | 71 | 0 | 0 |
 
-Кривые val loss (seed 0):
+Val loss curves (seed 0):
 
-| Шаг | born | cvqiaa | none | softmax |
+| Step | born | cvqiaa | none | softmax |
 |---|---|---|---|---|
 | 1 | 4.684 | 4.675 | 4.781 | 4.685 |
 | 250 | 1.746 | 2.255 | 2.318 | 1.483 |
@@ -23,7 +23,7 @@
 | 2750 | 1.035 | 1.263 | 2.298 | 0.974 |
 | 3000 | 1.033 | 1.260 | 2.297 | 0.972 |
 
-Образцы текста (seed 0, начало «Once upon a time», температура 0.8):
+Text samples (seed 0, prompt "Once upon a time", temperature 0.8):
 
 **born**
 
